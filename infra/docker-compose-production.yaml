@@ -1,0 +1,158 @@
+name: Cafe-Booking
+
+services:
+  rabbitmq:
+    env_file:
+      - .env
+    image: rabbitmq:4.0-management-alpine
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - cafe_booking
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    volumes:
+      - redis_log:/var/log/redis
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - cafe_booking
+    command:
+      sh -c "
+      chown -R redis:redis /var/log/redis &&
+      redis-server /usr/local/etc/redis/redis.conf
+      "
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  flower:
+    env_file:
+      - .env
+    image: mher/flower:latest
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/${RABBITMQ_DEFAULT_VHOST}
+    networks:
+      - cafe_booking
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    env_file:
+      - .env
+    image: postgres:17-alpine
+    volumes:
+      - pgdata:${PGDATA}
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - cafe_booking
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    env_file:
+        - .env
+    image: ${DOCKER_USERNAME}/bookin-cafe-backend:latest
+    volumes:
+      - backend_logs:/app/logs
+      - backend_media:/app/media
+      - ./fixtures:/app/fixtures:ro
+    command: uvicorn main:app --host 0.0.0.0 --port ${APP_PORT}
+    networks:
+      - cafe_booking
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$APP_PORT/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  celery-worker:
+    env_file:
+      - .env
+    image: ${DOCKER_USERNAME}/bookin-cafe-celery:latest
+    volumes:
+      - celery_logs:/app/logs
+    command: celery -A celery_app worker --pool=gevent
+    networks:
+      - cafe_booking
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  celery-beat:
+    env_file:
+      - .env
+    image: ${DOCKER_USERNAME}/bookin-cafe-celery:latest
+    volumes:
+      - beat_log:/app/logs
+    command: celery -A celery_app beat -S sqlalchemy_celery_beat.schedulers:DatabaseScheduler
+    networks:
+      - cafe_booking
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  gateway:
+      env_file:
+        - .env
+      image: ${DOCKER_USERNAME}/bookin-cafe-gateway:latest
+      ports:
+        - "127.0.0.1:8080:8080"
+      networks:
+      - cafe_booking
+      depends_on:
+        - backend
+      restart: unless-stopped
+
+volumes:
+  pgdata:
+  rabbitmq_data:
+  beat_log:
+  celery_logs:
+  backend_logs:
+  backend_media:
+
+networks:
+  cafe_booking:
+    name: cafe_booking
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.0.0/24
+          gateway: 172.16.0.1

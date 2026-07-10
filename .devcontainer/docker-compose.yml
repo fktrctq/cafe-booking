@@ -1,0 +1,101 @@
+name: Cafe_Booking
+
+services:
+  app:
+    env_file:
+        - ../infra/.env
+    build: .
+    volumes:
+      - ..:/workspace:cached
+      - ~/.ssh:/home/vscode/.ssh:ro
+    command: sleep infinity
+    networks:
+      - cafe_booking
+
+  rabbitmq:
+    env_file:
+      - ../infra/.env
+    image: rabbitmq:4.0-management-alpine
+    ports:
+      - ${RABBITMQ_PORT}:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - cafe_booking
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  flower:
+    image: mher/flower:latest
+    env_file:
+      - ../infra/.env
+    ports:
+      - ${FLOWER_PORT}:5555
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/${RABBITMQ_DEFAULT_VHOST}
+    networks:
+      - cafe_booking
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    env_file:
+      - ../infra/.env
+    volumes:
+      - pgdata:${PGDATA}
+      - ../infra/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - cafe_booking
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    env_file:
+      - ../infra/.env
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_log:/var/log/redis
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: |
+      sh -c "
+      chown -R redis:redis /var/log/redis &&
+      redis-server /usr/local/etc/redis/redis.conf
+      "
+    networks:
+      - cafe_booking
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  rabbitmq_data:
+  redis_log:
+
+networks:
+  cafe_booking:
+    name: cafe_booking
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.0.0/24
+          gateway: 172.16.0.1

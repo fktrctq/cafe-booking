@@ -1,0 +1,63 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "FastAPI server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000"
+            ],
+            "jinja": true,
+            "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Celery Worker",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "celery",
+            "args": [
+                "-A",
+                "celery_app",
+                "worker",
+                "--loglevel=debug",
+                "--pool=gevent"
+            ],
+            "gevent": true,
+            "cwd": "${workspaceFolder}/src",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Celery Beat",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "celery",
+            "args": [
+                "-A",
+                "celery_app",
+                "beat",
+                "--loglevel=debug",
+                "-S",
+                "sqlalchemy_celery_beat.schedulers:DatabaseScheduler"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "console": "integratedTerminal"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "FastAPI + Celery",
+            "configurations": ["FastAPI server", "Celery Worker"]
+        },
+        {
+            "name": "FastAPI + Celery + Beat",
+            "configurations": ["FastAPI server", "Celery Worker", "Celery Beat"]
+        }
+    ]
+}

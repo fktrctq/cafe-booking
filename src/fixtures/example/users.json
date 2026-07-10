@@ -1,0 +1,64 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "email": "skrblog@mail.ru",
+      "phone": "79991111111",
+      "role": "ADMIN"
+    },
+    {
+      "username": "manager_ivanov",
+      "email": "scriabin.alexei2017@yandex.ru",
+      "phone": "79992222222",
+      "role": "MANAGER"
+    },
+    {
+      "username": "manager_petrov",
+      "email": "alex20.84@mail.ru",
+      "phone": "79993333333",
+      "role": "MANAGER"
+    },
+    {
+      "username": "user_sidorov",
+      "email": "upp6u4scz1vd@mail.ru",
+      "phone": "79994444444",
+      "role": "USER"
+    },
+    {
+      "username": "user_kuznetsova",
+      "email": "533im2qyhqbn@mail.ru",
+      "phone": "79995555555",
+      "role": "USER"
+    },
+    {
+      "username": "user_vasiliev",
+      "email": "858jxxengaii@mail.ru",
+      "phone": "79996666666",
+      "role": "USER"
+    },
+    {
+      "username": "user_mikhailov",
+      "email": "jawc31n1ae83@mail.ru",
+      "phone": "79997777777",
+      "role": "USER"
+    },
+    {
+      "username": "user_aleksandrova",
+      "email": "aleksandrova@example.com",
+      "phone": "79998888888",
+      "role": "USER"
+    },
+    {
+      "username": "user_dmitriev",
+      "email": "dmitriev@example.com",
+      "phone": "79999999999",
+      "role": "USER"
+    },
+    {
+      "username": "user_nikolaev",
+      "email": "nikolaev@example.com",
+      "phone": "79990000000",
+      "role": "USER"
+    }
+  ]
+}

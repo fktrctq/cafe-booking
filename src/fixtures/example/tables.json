@@ -1,0 +1,54 @@
+{
+  "tables": [
+    {
+      "seat_number": 2,
+      "description": "Столик у окна",
+      "active": true
+    },
+    {
+      "seat_number": 2,
+      "description": "Романтический уголок",
+      "active": true
+    },
+    {
+      "seat_number": 4,
+      "description": "Семейный стол",
+      "active": true
+    },
+    {
+      "seat_number": 4,
+      "description": "Стол у камина",
+      "active": true
+    },
+    {
+      "seat_number": 4,
+      "description": "Центральный стол",
+      "active": true
+    },
+    {
+      "seat_number": 6,
+      "description": "Большой стол",
+      "active": true
+    },
+    {
+      "seat_number": 6,
+      "description": "VIP зона",
+      "active": true
+    },
+    {
+      "seat_number": 8,
+      "description": "Банкетный зал",
+      "active": true
+    },
+    {
+      "seat_number": 8,
+      "description": "Переговорная комната",
+      "active": true
+    },
+    {
+      "seat_number": 10,
+      "description": "Корпоративный стол",
+      "active": true
+    }
+  ]
+}

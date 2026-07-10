@@ -1,0 +1,67 @@
+name: 'Deploy to server'
+description: 'Deploy to server with docker compose'
+
+inputs:
+  host:
+    required: true
+    description: 'Server IP'
+  user:
+    required: true
+    description: 'Server User'
+  key:
+    required: true
+    description: 'SSH key for connect'
+  env_content:
+    description: 'Content of .env'
+    required: true
+
+runs:
+  using: composite
+  steps:
+
+    - name: Create .env file
+      shell: bash
+      run: |
+        cat << 'EOF' > .env
+        ${{ inputs.env_content }}
+        EOF
+
+    - name: Copy docker-compose & fixtures & postgresql.conf
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.user }}
+        key: ${{ inputs.key }}
+        fingerprint: ""
+        source: "infra/docker-compose-production.yaml,infra/postgresql.conf,src/fixtures/"
+        target: "cafe_booking"
+        strip_components: 1
+
+    - name: Copy .env
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.user }}
+        key: ${{ inputs.key }}
+        fingerprint: ""
+        source: ".env"
+        target: "cafe_booking"
+
+    - name: Deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.user }}
+        key: ${{ inputs.key }}
+        fingerprint: ""
+        script: |
+          cd cafe_booking
+          echo "🐳 Загрузка образов..."
+          sudo docker compose -f docker-compose-production.yaml pull
+          echo "🛑 Остановка контейнеров..."
+          sudo docker compose -f docker-compose-production.yaml down
+          echo "🚀 Запуск контейнеров..."
+          sudo docker compose -f docker-compose-production.yaml up -d
+          echo "🔄 Выполнение миграций..."
+          sudo docker compose -f docker-compose-production.yaml exec backend alembic upgrade head
+          echo "✅ Готово!"

@@ -1,0 +1,296 @@
+name: Main bookin cafe workflow
+
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [closed]
+  push:
+    branches: [feature/deploy]
+
+
+jobs:
+
+  check_conditions:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "📋✅  Условия выполнены, запускаем процесс деплоя"
+
+  style_check:
+    name: Use local style_check_action
+    uses: ./.github/workflows/style_check.yml
+
+  pytest_check:
+    name: Use local style_check_action
+    uses: ./.github/workflows/pytest_check.yml
+
+  build_backend_celery_and_push_to_docker_hub:
+    name: Build & Push Docker image backend, celery to DockerHub
+    needs:
+      - check_conditions
+      - style_check
+      - pytest_check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [backend, celery]
+        include:
+          - target: backend
+            image_name: bookin-cafe-backend
+          - target: celery
+            image_name: bookin-cafe-celery
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push to DockerHub (${{ matrix.target }})
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: infra/Dockerfile
+          target: ${{ matrix.target }}
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image_name }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image_name }}:${{ github.sha }}
+
+  build_gateway_and_push_to_docker_hub:
+    name: Build & Push Docker image gateway to DockerHub
+    needs:
+      - check_conditions
+      - style_check
+      - pytest_check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push to DockerHub
+        uses: docker/build-push-action@v4
+        with:
+          context: ./infra/nginx/
+          file: infra/nginx/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/bookin-cafe-gateway:latest
+            ${{ secrets.DOCKER_USERNAME }}/bookin-cafe-gateway:${{ github.sha }}
+
+  deploy-dev:
+    name: Deploy DEV Cafe Booking
+    if: github.ref_name != 'main'
+    needs:
+      - check_conditions
+      - style_check
+      - pytest_check
+      - build_backend_celery_and_push_to_docker_hub
+      - build_gateway_and_push_to_docker_hub
+    environment: development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Deploy to server
+        uses: ./.github/actions/deploy
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          env_content: |
+            # App env (vars)
+            APP_TITLE=${{ vars.APP_TITLE }}
+            APP_DESCRIPTIONS=${{ vars.APP_DESCRIPTIONS }}
+            VERSION=${{ vars.VERSION }}
+            APP_AUTHOR=${{ vars.APP_AUTHOR }}
+            MIN_PASSWORD_LENGTH=${{ vars.MIN_PASSWORD_LENGTH }}
+            LOG_TO_FILE=${{ vars.LOG_TO_FILE }}
+            LOG_LEVEL=${{ vars.LOG_LEVEL }}
+            LOG_FORMATTER=${{ vars.LOG_FORMATTER }}
+            TIME_FORMAT=${{ vars.TIME_FORMAT }}
+            TIME_ZONE=${{ vars.TIME_ZONE }}
+            APP_PORT=${{ vars.APP_PORT }}
+            ALLOW_ORIGINS=${{ vars.ALLOW_ORIGINS }}
+            # App env (secrets)
+            SECRET=${{ secrets.SECRET }}
+            SUPERUSER_EMAIL=${{ secrets.SUPERUSER_EMAIL }}
+            SUPERUSER_PASSWORD=${{ secrets.SUPERUSER_PASSWORD }}
+            SUPERUSER_NAME=${{ secrets.SUPERUSER_NAME}}
+
+            # Docker Hub (secrets)
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+
+            # Postgresql (vars)
+            TZ=${{ vars.TZ }}
+            PGTZ=${{ vars.PGTZ }}
+            POSTGRES_DB=${{ vars.POSTGRES_DB }}
+            POSTGRES_SERVER=${{ vars.POSTGRES_SERVER }}
+            POSTGRES_PORT=${{ vars.POSTGRES_PORT }}
+            PGDATA=${{ vars.PGDATA }}
+
+            # Backend (FastAPI API)
+            BACKEND_DB_POOL_SIZE=${{ vars.BACKEND_DB_POOL_SIZE }}
+            BACKEND_DB_MAX_OVERFLOW=${{ vars.BACKEND_DB_MAX_OVERFLOW }}
+            BACKEND_DB_POOL_TIMEOUT=${{ vars.BACKEND_DB_POOL_TIMEOUT }}
+            BACKEND_DB_POOL_RECYCLE=${{ vars.BACKEND_DB_POOL_RECYCLE }}
+            # Celery Worker
+            CELERY_DB_POOL_SIZE=${{ vars.CELERY_DB_POOL_SIZE }}
+            CELERY_DB_MAX_OVERFLOW=${{ vars.CELERY_DB_MAX_OVERFLOW }}
+            CELERY_DB_POOL_TIMEOUT=${{ vars.CELERY_DB_POOL_TIMEOUT }}
+            CELERY_DB_POOL_RECYCLE=${{ vars.CELERY_DB_POOL_RECYCLE }}
+
+            # Postgresql (secrets)
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+
+            # RabbitMQ (vars)
+            RABBITMQ_HOST=${{ vars.RABBITMQ_HOST }}
+            RABBITMQ_DEFAULT_VHOST=${{ vars.RABBITMQ_DEFAULT_VHOST }}
+            RABBITMQ_PORT=${{ vars.RABBITMQ_PORT }}
+            RABBITMQ_MANAGEMENT_PORT=${{ vars.RABBITMQ_MANAGEMENT_PORT }}
+            RESULT_BACKEND_URL=${{ vars.RESULT_BACKEND_URL }}
+
+            # RabbitMQ (secrets)
+            RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_DEFAULT_USER }}
+            RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_DEFAULT_PASS }}
+
+            # Flower (vars)
+            FLOWER_PORT=${{ vars.FLOWER_PORT }}
+
+            # Flower (secrets)
+            FLOWER_BASIC_AUTH=${{ secrets.FLOWER_BASIC_AUTH }}
+
+            # Celery-Worker (vars)
+            WORKER_CONCURRENCY=${{ vars.WORKER_CONCURRENCY }}
+            MAX_RETRIES=${{ vars.MAX_RETRIES }}
+            RATE_LIMIT=${{ vars.RATE_LIMIT }}
+
+            # SMTP (vars)
+            SMTP_SERVER=${{ vars.SMTP_SERVER }}
+            SMTP_PORT=${{ vars.SMTP_PORT }}
+            SMTP_USE_SSL=${{ vars.SMTP_USE_SSL }}
+            SMTP_USE_TLS=${{ vars.SMTP_USE_TLS }}
+            TIME_FORMAT_MESSAGE=${{ vars.TIME_FORMAT_MESSAGE }}
+
+            # SMTP (secrets)
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+
+  deploy-prod:
+    name: Deploy PROD Cafe Booking
+    if: github.ref_name == 'main'
+    needs:
+      - check_conditions
+      - style_check
+      - pytest_check
+      - build_backend_celery_and_push_to_docker_hub
+      - build_gateway_and_push_to_docker_hub
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Deploy to server
+        uses: ./.github/actions/deploy
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          user: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          env_content: |
+            # App env (vars)
+            APP_TITLE=${{ vars.APP_TITLE }}
+            APP_DESCRIPTIONS=${{ vars.APP_DESCRIPTIONS }}
+            VERSION=${{ vars.VERSION }}
+            APP_AUTHOR=${{ vars.APP_AUTHOR }}
+            MIN_PASSWORD_LENGTH=${{ vars.MIN_PASSWORD_LENGTH }}
+            LOG_TO_FILE=${{ vars.LOG_TO_FILE }}
+            LOG_LEVEL=${{ vars.LOG_LEVEL }}
+            LOG_FORMATTER=${{ vars.LOG_FORMATTER }}
+            TIME_FORMAT=${{ vars.TIME_FORMAT }}
+            TIME_ZONE=${{ vars.TIME_ZONE }}
+            APP_PORT=${{ vars.APP_PORT }}
+            ALLOW_ORIGINS=${{ vars.ALLOW_ORIGINS }}
+            # App env (secrets)
+            SECRET=${{ secrets.SECRET }}
+            SUPERUSER_EMAIL=${{ secrets.SUPERUSER_EMAIL }}
+            SUPERUSER_PASSWORD=${{ secrets.SUPERUSER_PASSWORD }}
+            SUPERUSER_NAME=${{ secrets.SUPERUSER_NAME}}
+
+            # Docker Hub (secrets)
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+
+            # Postgresql (vars)
+            TZ=${{ vars.TZ }}
+            PGTZ=${{ vars.PGTZ }}
+            POSTGRES_DB=${{ vars.POSTGRES_DB }}
+            POSTGRES_SERVER=${{ vars.POSTGRES_SERVER }}
+            POSTGRES_PORT=${{ vars.POSTGRES_PORT }}
+            PGDATA=${{ vars.PGDATA }}
+
+            # Backend (FastAPI API)
+            BACKEND_DB_POOL_SIZE=${{ vars.BACKEND_DB_POOL_SIZE }}
+            BACKEND_DB_MAX_OVERFLOW=${{ vars.BACKEND_DB_MAX_OVERFLOW }}
+            BACKEND_DB_POOL_TIMEOUT=${{ vars.BACKEND_DB_POOL_TIMEOUT }}
+            BACKEND_DB_POOL_RECYCLE=${{ vars.BACKEND_DB_POOL_RECYCLE }}
+            # Celery Worker
+            CELERY_DB_POOL_SIZE=${{ vars.CELERY_DB_POOL_SIZE }}
+            CELERY_DB_MAX_OVERFLOW=${{ vars.CELERY_DB_MAX_OVERFLOW }}
+            CELERY_DB_POOL_TIMEOUT=${{ vars.CELERY_DB_POOL_TIMEOUT }}
+            CELERY_DB_POOL_RECYCLE=${{ vars.CELERY_DB_POOL_RECYCLE }}
+
+            # Postgresql (secrets)
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+
+            # RabbitMQ (vars)
+            RABBITMQ_HOST=${{ vars.RABBITMQ_HOST }}
+            RABBITMQ_DEFAULT_VHOST=${{ vars.RABBITMQ_DEFAULT_VHOST }}
+            RABBITMQ_PORT=${{ vars.RABBITMQ_PORT }}
+            RABBITMQ_MANAGEMENT_PORT=${{ vars.RABBITMQ_MANAGEMENT_PORT }}
+            RESULT_BACKEND_URL=${{ vars.RESULT_BACKEND_URL }}
+
+            # RabbitMQ (secrets)
+            RABBITMQ_DEFAULT_USER=${{ secrets.RABBITMQ_DEFAULT_USER }}
+            RABBITMQ_DEFAULT_PASS=${{ secrets.RABBITMQ_DEFAULT_PASS }}
+
+            # Flower (vars)
+            FLOWER_PORT=${{ vars.FLOWER_PORT }}
+
+            # Flower (secrets)
+            FLOWER_BASIC_AUTH=${{ secrets.FLOWER_BASIC_AUTH }}
+
+            # Celery-Worker (vars)
+            WORKER_CONCURRENCY=${{ vars.WORKER_CONCURRENCY }}
+            MAX_RETRIES=${{ vars.MAX_RETRIES }}
+            RATE_LIMIT=${{ vars.RATE_LIMIT }}
+
+            # SMTP (vars)
+            SMTP_SERVER=${{ vars.SMTP_SERVER }}
+            SMTP_PORT=${{ vars.SMTP_PORT }}
+            SMTP_USE_SSL=${{ vars.SMTP_USE_SSL }}
+            SMTP_USE_TLS=${{ vars.SMTP_USE_TLS }}
+            TIME_FORMAT_MESSAGE=${{ vars.TIME_FORMAT_MESSAGE }}
+
+            # SMTP (secrets)
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
