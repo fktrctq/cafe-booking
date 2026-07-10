@@ -2,10 +2,13 @@ from typing import Optional, TypeVar
 from uuid import UUID
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings.sources import PydanticBaseSettingsSource
 
-from core.config import settings
+from core.config import BASE_DIR_PROJECT, settings
 
 User = TypeVar('User')
+
+ENV_DEV = BASE_DIR_PROJECT / 'infra' / '.env.cache'
 
 
 class CacheSettings(BaseSettings):
@@ -60,10 +63,24 @@ class CacheSettings(BaseSettings):
     user_list_tag: str = 'tag_users'
 
     model_config = SettingsConfigDict(
-        env_file=('.env.cache'),
+        env_file=(ENV_DEV if ENV_DEV.exists() else '.env.cache'),
         env_file_encoding='utf-8',
         extra='ignore',
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Переопределяем приоритеты источников переменных для dev и prom."""
+        if ENV_DEV.exists():
+            return (init_settings, dotenv_settings, env_settings, file_secret_settings)
+        return (init_settings, file_secret_settings, env_settings, dotenv_settings)
 
 
 cache_settings = CacheSettings()

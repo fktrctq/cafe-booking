@@ -3,6 +3,7 @@ name: Cafe-Booking
 services:
   rabbitmq:
     env_file:
+      - .env.base
       - .env
     image: rabbitmq:4.0-management-alpine
     volumes:
@@ -38,6 +39,7 @@ services:
 
   flower:
     env_file:
+      - .env.base
       - .env
     image: mher/flower:latest
     environment:
@@ -51,6 +53,7 @@ services:
 
   db:
     env_file:
+      - .env.base
       - .env
     image: postgres:17-alpine
     volumes:
@@ -68,6 +71,8 @@ services:
 
   backend:
     env_file:
+        - .env.base
+        - .env.cache
         - .env
     image: ${DOCKER_USERNAME}/bookin-cafe-backend:latest
     volumes:
@@ -92,6 +97,7 @@ services:
 
   celery-worker:
     env_file:
+      - .env.base
       - .env
     image: ${DOCKER_USERNAME}/bookin-cafe-celery:latest
     volumes:
@@ -114,6 +120,7 @@ services:
 
   celery-beat:
     env_file:
+      - .env.base
       - .env
     image: ${DOCKER_USERNAME}/bookin-cafe-celery:latest
     volumes:
@@ -130,6 +137,7 @@ services:
 
   gateway:
       env_file:
+        - .env.base
         - .env
       image: ${DOCKER_USERNAME}/bookin-cafe-gateway:latest
       ports:
@@ -143,6 +151,7 @@ services:
 volumes:
   pgdata:
   rabbitmq_data:
+  redis_log:
   beat_log:
   celery_logs:
   backend_logs:
