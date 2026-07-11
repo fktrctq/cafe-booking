@@ -63,7 +63,7 @@ class CacheSettings(BaseSettings):
     user_list_tag: str = 'tag_users'
 
     model_config = SettingsConfigDict(
-        env_file=(ENV_DEV if ENV_DEV.exists() else '.env.cache'),
+        env_file=(ENV_DEV if ENV_DEV.exists() else '.env'),
         env_file_encoding='utf-8',
         extra='ignore',
     )
