@@ -22,18 +22,20 @@ runs:
     - name: Create .env file
       shell: bash
       run: |
-        cat << 'EOF' > .env
+        cat infra/.env.cache > .env
+        cat infra/.env.base >> .env
+        cat << 'EOF' >> .env
         ${{ inputs.env_content }}
         EOF
 
-    - name: Copy docker-compose & fixtures & postgresql.conf
+    - name: Copy docker-compose & fixtures & *.conf
       uses: appleboy/scp-action@master
       with:
         host: ${{ inputs.host }}
         username: ${{ inputs.user }}
         key: ${{ inputs.key }}
         fingerprint: ""
-        source: "infra/docker-compose-production.yaml,infra/postgresql.conf,src/fixtures/"
+        source: "infra/docker-compose-production.yaml,infra/postgresql.conf,src/fixtures/,infra/redis.conf"
         target: "cafe_booking"
         strip_components: 1
 

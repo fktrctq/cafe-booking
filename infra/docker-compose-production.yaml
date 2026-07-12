@@ -143,6 +143,7 @@ services:
 volumes:
   pgdata:
   rabbitmq_data:
+  redis_log:
   beat_log:
   celery_logs:
   backend_logs:
