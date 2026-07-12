@@ -22,9 +22,9 @@ runs:
     - name: Create .env file
       shell: bash
       run: |
-        cat infra/.env.cache >> .env
+        cat infra/.env.cache > .env
         cat infra/.env.base >> .env
-        cat << 'EOF' > .env
+        cat << 'EOF' >> .env
         ${{ inputs.env_content }}
         EOF
 
