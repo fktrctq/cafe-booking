@@ -1,165 +1,325 @@
 # Cafe Booking System
 
-API-сервис для бронирования столиков в кафе.
-
-Проект реализован на **FastAPI** и предоставляет REST API для работы с пользователями, кафе, столами, временными слотами, бронированиями и медиафайлами. Документация API хранится в директории `openapi-docs`.
+**Cafe Booking** — асинхронный API-сервис для бронирования столиков в кафе, разработанный на FastAPI. Проект решает проблему хаотичного бронирования по телефону, предоставляя клиентам онлайн-инструмент для управления бронированиями, а владельцам и менеджерам — централизованную систему управления заведениями, столами и временными слотами. Сервис автоматически отправляет уведомления и напоминания через Celery, использует RabbitMQ как брокер сообщений, а Redis — для кеширования часто запрашиваемых данных. Основная цель — сделать процесс бронирования прозрачным, удобным и исключающим двойные записи.
 
 ## Содержание
 
-- [Стек технологий](#стек-технологий)
-- [Возможности проекта](#возможности-проекта)
-- [Документация API](#документация-api)
-- [Основные эндпоинты](#основные-эндпоинты)
-- [Переменные окружения](#переменные-окружения)
-- [Запуск проекта](#запуск-проекта)
-- [Работа через DevContainer](#работа-через-devcontainer)
-- [Миграции](#миграции)
-- [Фикстуры](#фикстуры)
-- [Тесты](#тесты)
-- [Структура проекта](#структура-проекта)
-- [Авторизация](#авторизация)
-- [Celery, RabbitMQ и Flower](#celery-rabbitmq-и-flower)
-- [Линтеры и pre-commit](#линтеры-и-pre-commit)
+- [⚡ Возможности проекта](#-возможности-проекта)
+- [📚 API Documentation](#-api-documentation)
+- [👥 Роли и их возможности](#-роли-и-их-возможности)
+- [🚀 CI/CD Pipeline](#-cicd-pipeline)
+- [⚙️ Переменные окружения](#️-переменные-окружения)
+- [🐳 Запуск проекта (DEV)](#-запуск-проекта)
+- [📦 Работа через DevContainer](#-работа-через-devcontainer)
+- [🗄️ Миграции](#️-миграции)
+- [📊 Фикстуры](#-фикстуры)
+- [👤 Создание суперпользователя](#-создание-суперпользователя)
+- [🧪 Тесты](#-тесты)
+- [📁 Структура проекта](#-структура-проекта)
 
-## Стек технологий
+## 🛠️ Стек технологий
 
-- Python 3.12
-- FastAPI
-- SQLAlchemy Async
-- Alembic
-- PostgreSQL
-- Pydantic
-- JWT-аутентификация
-- RabbitMQ
-- Celery
-- Flower
-- Pytest
-- Ruff
-- Pre-commit
-- uv
-- Docker / Docker Compose
-- Dev Containers for VSCode
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![uv](https://img.shields.io/badge/uv-latest-purple)
+![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0+-FF6600?logo=rabbitmq&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7.0+-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-latest-blue)
+![Celery](https://img.shields.io/badge/Celery-latest-lightgreen)
+![Pytest](https://img.shields.io/badge/Pytest-latest-blue)
+![GitHub Actions Workflow Status](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)
 
-## Возможности проекта
+### 🐍 Язык и окружение
 
-- регистрация пользователей;
-- авторизация через JWT-токен;
-- роли пользователей: `USER`, `MANAGER`, `ADMIN`;
-- просмотр и обновление профиля текущего пользователя;
-- просмотр и управление пользователями для администраторов и менеджеров;
-- CRUD-операции для кафе;
-- CRUD-операции для столиков внутри кафе;
-- CRUD-операции для временных слотов;
-- создание и управление бронированиями;
-- загрузка изображений с конвертацией в JPG;
-- получение медиафайлов по ID;
-- проверка состояния приложения через health-check;
-- фоновые задачи через Celery;
-- мониторинг Celery через Flower.
+- **Python 3.12** — целевая версия интерпретатора
+- **uv** — универсальный менеджер пакетов и инструмент управления проектом (замена pip + venv + pip-tools)
+- **Ruff** — сверхбыстрый линтер и форматтер (замена flake8, black, isort)
+- **Pre-commit** — хуки Git для автоматической проверки кода перед коммитом
 
-## Документация API
+### 🌐 Веб-фреймворк API
 
-OpenAPI-документация находится в директории:
+- **FastAPI** — асинхронный веб-фреймворк для построения REST API
 
-```text
-openapi-docs/
+### 🗄️ Базы данных и миграции
+
+- **PostgreSQL** — основная реляционная БД
+- **SQLAlchemy** — ORM для работы с БД (асинхронный режим)
+- **Alembic** — инструмент для управления миграциями схемы БД
+
+### 📨 Асинхронные задачи и очереди
+
+- **RabbitMQ** — брокер сообщений
+- **Celery** — распределённая очередь задач
+- **Flower** — веб-интерфейс для мониторинга Celery
+
+### ⚡ Кеширование
+
+- **Redis** — высокопроизводительное in-memory хранилище
+- **Кастомный Redis-клиент** — с поддержкой асинхронности
+- **Кастомный кеш-клиент с SWR (Stale-While-Revalidate)** — стратегия кеширования с фоновым обновлением
+- **Декоратор кеширования**
+
+### 🔧 Кастомные Middleware
+
+- **Аутентификация** (`AuthMiddleware`) — кастомный JWT-мидлварь для проверки токена, подстановки текущего пользователя в `request.state.user` с кеширования пользователя (SWR-стратегия)
+- **Логирование** (`LoggingMiddleware`) — кастомный мидлварь для логирования всех входящих запросов и ответов:
+  - Логирование запросов (метод, путь, IP клиента, `trace_id`, пользователь)
+  - Логирование ответов (статус, длительность в мс)
+  - Логирование ошибок с телом запроса
+  - Поддержка `X-Forwarded-For` для определения реального IP клиента
+  - Генерация `X-Request-ID` для трейсинга запросов
+
+### 🧪 Тестирование
+
+- **Pytest** — фреймворк для модульного и интеграционного тестирования
+
+### 🐳 Контейнеризация и среда разработки
+
+- **Docker / Docker Compose** — контейнеризация всех сервисов (приложение + БД + RabbitMQ)
+- **Dev Containers for VSCode** — изолированная среда разработки в контейнере
+
+
+## ⚡ Возможности проекта
+
+- 🔐 **Аутентификация и авторизация** — JWT-токены, роли `USER`, `MANAGER`, `ADMIN`
+- 👤 **Управление пользователями** — регистрация, просмотр, редактирование, блокировка
+- ☕ **Управление кафе** — создание, редактирование, просмотр кафе
+- 🪑 **Управление столами** — создание, редактирование, блокировка столов в кафе
+- ⏰ **Управление временными слотами** — настройка интервалов бронирования
+- 📅 **Бронирование** — создание, просмотр, изменение и отмена бронирований с выбором даты, времени и стола
+- 🖼️ **Медиа** — загрузка изображений с конвертацией в JPG и получение по ID
+- 📨 **Фоновые задачи** — уведомления и напоминания через Celery + RabbitMQ
+- ⚡ **Кеширование** — Redis + SWR-стратегия для быстрых ответов
+- 🧪 **Тестирование** — Pytest с отдельной тестовой БД
+- 🐳 **Контейнеризация** — Docker + DevContainer для единообразной разработки
+- 🔄 **CI/CD** — GitHub Actions: линтинг, тесты, сборка и деплой
+
+
+## 📚 API Documentation
+
+Базовый URL для всех запросов: `/api/v1`
+
+### 🔑 Аутентификация
+
+Большинство эндпоинтов защищены JWT-токеном. Для доступа к ним необходимо в заголовке запроса передавать:
+Authorization: Bearer <your_access_token>
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `POST` | `/auth/login` | Авторизация пользователя. Принимает **логин** (email или телефон) и **пароль**. Возвращает JWT токен. | Публичный |
+
+### 👤 Пользователи
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `GET` | `/users/` | Получение списка всех пользователей. | Менеджер, Админ |
+| `POST` | `/users/` | Регистрация нового пользователя. | Публичный |
+| `GET` | `/users/me` | Получение профиля текущего авторизованного пользователя. | Аутентифицированные |
+| `PATCH` | `/users/me` | Обновление профиля текущего пользователя. | Аутентифицированные |
+| `GET` | `/users/{user_id}` | Получение пользователя по UUID. | Менеджер, Админ |
+| `PATCH` | `/users/{user_id}` | Обновление данных пользователя по UUID. | Менеджер, Админ |
+
+### ☕ Кафе
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `GET` | `/cafes/` | Получение списка кафе. Опциональный фильтр `show_active`. | Аутентифицированные |
+| `POST` | `/cafes/` | Создание нового кафе. | Менеджер, Админ |
+| `GET` | `/cafes/{cafe_id}` | Получение кафе по UUID. | Аутентифицированные |
+| `PATCH` | `/cafes/{cafe_id}` | Обновление данных кафе. | Менеджер, Админ |
+
+### 🪑 Столы (внутри кафе)
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `GET` | `/cafes/{cafe_id}/tables/` | Список столиков в кафе. Опционально `show_active`. | Аутентифицированные |
+| `POST` | `/cafes/{cafe_id}/tables/` | Создание нового столика в кафе. | Менеджер, Админ |
+| `GET` | `/cafes/{cafe_id}/tables/{table_id}` | Получение столика по UUID. | Аутентифицированные |
+| `PATCH` | `/cafes/{cafe_id}/tables/{table_id}` | Обновление данных столика. | Менеджер, Админ |
+
+### ⏰ Временные слоты (интервалы бронирования)
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `GET` | `/cafes/{cafe_id}/time_slots/` | Список временных слотов кафе. Опционально `show_active`. | Аутентифицированные |
+| `POST` | `/cafes/{cafe_id}/time_slots/` | Создание нового слота. | Менеджер, Админ |
+| `GET` | `/cafes/{cafe_id}/time_slots/{slot_id}` | Получение слота по UUID. | Аутентифицированные |
+| `PATCH` | `/cafes/{cafe_id}/time_slots/{slot_id}` | Обновление данных слота. | Менеджер, Админ |
+
+### 📅 Бронирования
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `GET` | `/booking/` | Список бронирований. Фильтры: `show_active`, `cafe_id`, `user_id`. | Аутентифицированные |
+| `POST` | `/booking/` | Создание нового бронирования (выбор стола + слота). | Аутентифицированные |
+| `GET` | `/booking/{booking_id}` | Получение бронирования по UUID. | Аутентифицированные |
+| `PATCH` | `/booking/{booking_id}` | Обновление данных бронирования. | Аутентифицированные |
+
+### 🖼️ Медиа (изображения)
+
+| Метод | Эндпоинт | Описание | Доступ |
+|-------|----------|----------|--------|
+| `GET` | `/media/{media_id}` | Получение изображения в формате JPG по UUID. | Публичный |
+| `POST` | `/media/` | Загрузка нового изображения (multipart/form-data). | Менеджер, Админ |
+
+### ⏱️ Celery Beat / Управление расписаниями
+
+*Эндпоинты для создания и управления расписаниями периодических задач.*
+
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| `GET` | `/schedule/clocked` | Список однократных расписаний. |
+| `POST` | `/schedule/clocked` | Создать однократное расписание. |
+| `DELETE` | `/schedule/clocked/{schedules_id}` | Удалить однократное расписание. |
+| `GET` | `/schedule/interval` | Список интервальных расписаний. |
+| `POST` | `/schedule/interval` | Создать интервальное расписание. |
+| `DELETE` | `/schedule/interval/{schedules_id}` | Удалить интервальное расписание. |
+| `GET` | `/schedule/crontab` | Список cron-расписаний. |
+| `POST` | `/schedule/crontab` | Создать cron-расписание. |
+| `DELETE` | `/schedule/crontab/{schedules_id}` | Удалить cron-расписание. |
+
+### 📋 Celery Beat / Управление задачами
+
+*CRUD для периодических задач, привязанных к расписаниям.*
+
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| `GET` | `/schedule/task` | Список всех периодических задач. |
+| `POST` | `/schedule/task` | Создать задачу. |
+| `GET` | `/schedule/task/{task_id}` | Получить задачу по ID. |
+| `PATCH` | `/schedule/task/{task_id}` | Обновить задачу. |
+| `DELETE` | `/schedule/task/{task_id}` | Удалить задачу. |
+| `POST` | `/schedule/task/{task_id}/enable` | Включить задачу. |
+| `POST` | `/schedule/task/{task_id}/disable` | Отключить задачу. |
+
+### ❤️ Health Check
+
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| `GET` | `/health` | Проверка работоспособности сервиса и его зависимостей. |
+
+---
+
+## 👥 Роли и их возможности
+
+### 👤 Клиент (USER)
+
+- Регистрация и авторизация
+- Просмотр списка кафе, столов и доступных временных слотов
+- Создание бронирования с выбором даты, времени и стола
+- Просмотр своих бронирований
+- Изменение и отмена своих бронирований
+
+### 🛠️ Менеджер (MANAGER)
+
+- Всё, что может **Клиент**
+- Управление кафе (создание, редактирование)
+- Управление столами в кафе (создание, редактирование, блокировка)
+- Управление временными слотами (создание, редактирование, блокировка)
+- Просмотр всех бронирований в своих кафе
+- Управление изображениями (загрузка, удаление)
+
+### 👑 Администратор (ADMIN)
+
+- Всё, что может **Менеджер**
+- Полный доступ ко всем кафе и их объектам
+- Управление пользователями (создание, редактирование, блокировка/разблокировка)
+- Просмотр всех бронирований системы
+- Управление ролями пользователей
+- Полный доступ к управлению кафе, столами и слотами
+
+
+## 🚀 CI/CD Pipeline
+
+![GitHub Actions Workflow Status](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)
+![Docker Hub](https://img.shields.io/badge/Docker%20Hub-Automated-2496ED?logo=docker)
+![Deploy Dev](https://img.shields.io/badge/Deploy-Development-blue)
+![Deploy Prod](https://img.shields.io/badge/Deploy-Production-red)
+
+Автоматизация сборки, тестирования и деплоя через **GitHub Actions**.
+
+---
+
+### 🔄 Workflow: `Main booking cafe workflow`
+
+| Триггер | Ветки | Условие |
+|---------|-------|---------|
+| `push` | `feature/deploy` | Всегда |
+| `pull_request` (closed) | `develop`, `main` | Только при объединении (merged) |
+
+---
+
+### 📋 Jobs
+
+| Job | Описание | Зависит от |
+|-----|----------|------------|
+| **`style_check`** | Линтинг и форматирование (Ruff) | — |
+| **`pytest_check`** | Запуск тестов (Pytest) | — |
+| **`build_backend_celery`** | Сборка образов **backend** + **celery** в Docker Hub | `style_check`, `pytest_check` |
+| **`build_gateway`** | Сборка образа **Nginx-шлюза** в Docker Hub | `style_check`, `pytest_check` |
+| **`deploy-dev`** | Деплой на **development** (если **НЕ** `main`) | Все сборки |
+| **`deploy-prod`** | Деплой на **production** (если `main`) | Все сборки |
+
+---
+
+### 🐳 Docker-образы
+
+| Имя образа | Теги |
+|------------|------|
+| `bookin-cafe-backend` | `:latest`, `:<sha>` |
+| `bookin-cafe-celery` | `:latest`, `:<sha>` |
+| `bookin-cafe-gateway` | `:latest`, `:<sha>` |
+
+---
+
+### 🌍 Окружения
+
+| Окружение | Ветка | Назначение |
+|-----------|-------|------------|
+| **Development** | Любая, кроме `main` | Тестовый сервер для разработки |
+| **Production** | `main` | Боевой сервер |
+
+---
+
+### 🔐 Необходимые секреты
+
+| Группа | Секреты |
+|--------|---------|
+| **Docker Hub** | `DOCKER_USERNAME`, `DOCKER_PASSWORD` |
+| **Сервер** | `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY` |
+| **Приложение** | `SECRET`, `SUPERUSER_*`, `POSTGRES_*` |
+| **RabbitMQ** | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` |
+| **SMTP** | `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` |
+| **Flower** | `FLOWER_BASIC_AUTH` |
+
+> Полный список переменных и секретов доступен в `[.github/workflows/main.yml](https://github.com/fktrctq/cafe-booking/blob/main/.github/workflows/main.yml)`
+
+**⚠️ Важно:** Все секреты и переменные должны быть настроены в `Settings > Secrets and variables > Actions` вашего репозитория.
+---
+
+### 📊 Схема пайплайна
+
+```mermaid
+graph LR
+    A[Push / PR merged] --> B[check_conditions]
+    B --> C[style_check]
+    B --> D[pytest_check]
+    C --> E[build_backend + celery]
+    D --> E
+    C --> F[build_gateway]
+    D --> F
+    E --> G[deploy-dev<br>если не main]
+    F --> G
+    E --> H[deploy-prod<br>если main]
+    F --> H
 ```
 
-Основная спецификация API:
+## ⚙️ Переменные окружения
 
-```text
-openapi-docs/docs/openapi.yml
-```
-
-Для просмотра документации можно запустить отдельный контейнер:
-
-```bash
-cd openapi-docs
-docker compose up -d
-```
-
-После запуска документация будет доступна по адресам:
-
-```text
-http://localhost:8080/index_swagger.html
-http://localhost:8080/index_redoc.html
-```
-
-## Основные эндпоинты
-
-Базовый URL API:
-
-```text
-http://localhost:8000
-```
-
-### Аутентификация
-
-```text
-POST /auth/login
-```
-
-### Пользователи
-
-```text
-POST  /users/
-GET   /users/
-GET   /users/{user_id}
-PATCH /users/{user_id}
-GET   /users/me
-PATCH /users/me
-```
-
-### Кафе
-
-```text
-GET   /cafes/
-POST  /cafes/
-GET   /cafes/{cafe_id}
-PATCH /cafes/{cafe_id}
-```
-
-### Столы
-
-```text
-GET   /cafes/{cafe_id}/tables/
-POST  /cafes/{cafe_id}/tables/
-GET   /cafes/{cafe_id}/tables/{table_id}
-PATCH /cafes/{cafe_id}/tables/{table_id}
-```
-
-### Временные слоты
-
-```text
-GET   /cafes/{cafe_id}/time_slots/
-POST  /cafes/{cafe_id}/time_slots/
-GET   /cafes/{cafe_id}/time_slots/{slot_id}
-PATCH /cafes/{cafe_id}/time_slots/{slot_id}
-```
-
-### Бронирования
-
-```text
-GET   /booking/
-POST  /booking/
-GET   /booking/{booking_id}
-PATCH /booking/{booking_id}
-```
-
-### Медиа
-
-```text
-POST /media/
-GET  /media/{media_id}
-```
-
-### Health-check
-
-```text
-GET /health
-```
-
-## Переменные окружения
+- .env — основной файл с переменными (подключается в Docker Compose)
+- .env.base — базовые переменные (например, для тестов)
+- .env.cache — настройки Redis-кеша (если используется)
 
 Перед запуском проекта нужно создать файл окружения на основе примера:
 
@@ -167,113 +327,83 @@ GET /health
 cp infra/.env.example infra/.env
 ```
 
-Основные переменные окружения:
+**⚠️ Важно:** Копию отредактированного infra/.env необходимо скопировать в .devcontainer/ для работы DevContainer.
 
-```env
-APP_TITLE=Cafe Booking
-APP_DESCRIPTIONS=Cafe Booking.
-VERSION=1.0.0
-APP_AUTHOR=Author
+## 🐳 Запуск проекта
 
-ALGORITHM=HS256
-SECRET=supersecretkey
-
-SUPERUSER_EMAIL=admin@cafebooking.com
-SUPERUSER_PASSWORD=userpaswd
-SUPERUSER_NAME=superadmin
-MIN_PASSWORD_LENGTH=5
-
-DEBUG=False
-LOG_LEVEL=DEBUG
-LOG_FORMATTER=standard
-TIME_FORMAT=%Y-%m-%dT%H:%M:%S
-TIME_ZONE=Europe/Moscow
-
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=cafe
-POSTGRES_SERVER=db
-POSTGRES_PORT=5432
-
-RABBITMQ_HOST=rabbitmq
-RABBITMQ_USER=userrabbit
-RABBITMQ_PASS=rabbit
-RABBITMQ_VHOST=/
-RABBITMQ_PORT=5672
-
-RESULT_BACKEND_URL=rpc://
-
-FLOWER_PORT=5555
-FLOWER_BASIC_AUTH=admin:flowerpass
-
-GEVENT_SUPPORT=True
-
-SMTP_SERVER=smtp.mail.ru
-SMTP_PORT=465
-SMTP_USE_SSL=True
-SMTP_USE_TLS=False
-SMTP_USER=cafe_booking@mail.ru
-SMTP_FROM_EMAIL=cafe_booking@mail.ru
-SMTP_PASSWORD=supersecretpasswordforsmtpserver
-TIME_FORMAT_MESSAGE=%d.%m.%Y %H:%M
-```
-
-Для тестов нужно добавить отдельную базу данных:
-
-```env
-TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/cafe_test
-```
-
-Важно: значение `POSTGRES_SERVER` должно совпадать с именем сервиса PostgreSQL в `docker-compose`. В стандартной конфигурации сервис базы данных называется `db`, поэтому используется:
-
-```env
-POSTGRES_SERVER=db
-```
-
-## Запуск проекта
-
-### Запуск через Docker Compose
+### 🚀 Запуск
 
 Из директории `infra` выполните:
 
 ```bash
 cd infra
-docker compose up --build
+docker compose -f docker-compose-develop.yaml up -d --build
 ```
 
-Для запуска в фоновом режиме:
+#### После запуска будут доступны:
+
+| Сервис | Адрес |
+|--------|-------|
+| **API** | [http://localhost:8000](http://localhost:8000) |
+| **Flower** | [http://localhost:5555](http://localhost:5555) |
+| **RabbitMQ Management** | [http://localhost:15672](http://localhost:15672) |
+
+### 🛑 Остановка
 
 ```bash
-cd infra
-docker compose up -d --build
+docker compose -f docker-compose-develop.yaml down
 ```
 
-После запуска будут доступны:
+## 📦 Работа через DevContainer
 
-```text
-API:                   http://localhost:8000
-Flower:                http://localhost:5555
-RabbitMQ Management:   http://localhost:15672
-```
+Разработка проекта рассчитана на использование **Dev Containers** в VSCode.
 
-Проверить состояние приложения можно через:
+Перед началом работы должны быть установлены:
 
-```text
-http://localhost:8000/health
-```
+- Docker;
+- VSCode;
+- расширение `Dev Containers`.
 
-### Локальный запуск внутри DevContainer
+### 🏗️ Создание DevContainer
 
-Откройте терминал в VSCode внутри DevContainer, перейдите в директорию `src` и выполните:
+Для открытия проекта в контейнере:
+
+1. откройте проект в VSCode;
+2. нажмите `Ctrl + Shift + P`;
+3. выберите команду `Dev Containers: Reopen in Container`.
+
+После этого начнётся сборка контейнера. В процессе будут установлены Python, uv, зависимости проекта и плагины VSCode.
+
+> **💡 Совет:** Если после сборки контейнера VSCode подсвечивает установленные пакеты как неизвестные, перезапустите VSCode или дождитесь индексации окружения.
+
+### 🔑 Настройка Git внутри DevContainer
 
 ```bash
-cd src
-python main.py
+git config --global user.name "Your Name"
+git config --global user.email "your_email@example.com"
 ```
 
-Проект запустится на порту `8000`.
+### 🔐 Настройка SSH для GitHub внутри DevContainer
 
-### Запуск в режиме отладки VSCode
+Первый вариант — скопировать существующие SSH-ключи с хоста в контейнер:
+
+```text
+/home/vscode/.ssh
+```
+
+Второй вариант — создать новую пару ключей внутри контейнера:
+
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+Добавить публичный ключ в GitHub:
+
+```text
+GitHub -> Settings -> SSH and GPG keys -> SSH keys
+```
+
+### 🐞 Запуск в режиме отладки VSCode
 
 Проект можно запустить через встроенную отладку VSCode:
 
@@ -287,150 +417,57 @@ python main.py
 .vscode/launch.json
 ```
 
-## Работа через DevContainer
-
-Разработка проекта рассчитана на использование **Dev Containers** в VSCode.
-
-Перед началом работы должны быть установлены:
-
-- Docker;
-- VSCode;
-- расширение `Dev Containers`.
-
-### Создание DevContainer
-
-Для открытия проекта в контейнере:
-
-1. откройте проект в VSCode;
-2. нажмите `Ctrl + Shift + P`;
-3. выберите команду `Dev Containers: Reopen in Container`.
-
-После этого начнётся сборка контейнера. В процессе будут установлены Python, uv, зависимости проекта и плагины VSCode.
-
-Если после сборки контейнера VSCode временно подсвечивает установленные пакеты как неизвестные, перезапустите VSCode или дождитесь индексации окружения.
-
-### Настройка Git внутри DevContainer
-
-Так как разработка ведётся внутри контейнера, Git внутри контейнера нужно настроить отдельно.
-
-Укажите имя и email:
-
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your_email@example.com"
-```
-
-### Настройка SSH для GitHub внутри DevContainer
-
-Есть два варианта.
-
-Первый вариант — скопировать существующие SSH-ключи с хоста в контейнер:
-
-```text
-/home/vscode/.ssh
-```
-
-Права доступа должны быть такими:
-
-```text
--rw-------  private_key
--rw-r--r--  public_key.pub
-```
-
-Если права неправильные, их можно исправить:
-
-```bash
-chmod 600 ~/.ssh/id_rsa
-chmod 644 ~/.ssh/id_rsa.pub
-```
-
-Второй вариант — создать новую пару ключей внутри контейнера и добавить публичный ключ в GitHub:
-
-```text
-GitHub -> Settings -> SSH and GPG keys
-```
-
-## Миграции
+## 🗄️ Миграции
 
 Применение миграций:
 
 ```bash
 cd src
-alembic upgrade head
-```
-
-Если используется uv:
-
-```bash
-cd src
 uv run alembic upgrade head
 ```
 
-Создание новой миграции:
+## 📊 Фикстуры
 
-```bash
-cd src
-uv run alembic revision --autogenerate -m "migration_name"
-```
+Фикстуры для наполнения базы тестовыми данными.
 
-Откат последней миграции:
+> **👆 Перед загрузкой фикстур примените миграции**
 
-```bash
-cd src
-uv run alembic downgrade -1
-```
-
-## Фикстуры
-
-В проекте есть фикстуры для наполнения базы тестовыми данными.
-
-Перед загрузкой фикстур примените миграции:
-
-```bash
-cd src
-uv run alembic upgrade head
-```
-
-Затем задайте `PYTHONPATH`:
+Задайте `PYTHONPATH`:
 
 ```bash
 export PYTHONPATH=/workspace/src
 ```
 
-И запустите загрузку фикстур:
+Запустите загрузку фикстур:
 
 ```bash
 cd src/fixtures
 uv run python gen_load_fixtures.py
 ```
 
-Если используется загрузчик `load_fixtures.py`, его можно запустить из корня проекта:
+
+## 👤 Создание суперпользователя
+
+При запуске сервиса создается суперпользователь. Учетные данные из `.env`:
+
+- `SUPERUSER_EMAIL`
+- `SUPERUSER_PASSWORD`
+- `SUPERUSER_NAME`
+
+Существует возможность создания суперпользователя из консоли:
 
 ```bash
-uv run python -m src.fixtures.load_fixtures
+export PYTHONPATH=/workspace/src
 ```
-
-Фикстуры загружаются в режиме upsert: существующие записи обновляются, новые — добавляются.
-
-## Создание суперпользователя
-
-# При запуске сервиса создается суперпользователь. Учетные данные из .env
-- SUPERUSER_EMAIL
-- SUPERUSER_PASSWORD
-- SUPERUSER_NAME
-
-# Существует возможность создания суперпользователя из консоли
 
 ```bash
-cd src
-PYTHONPATH=$(pwd) uv run scripts/create_superuser.py -l admin@cafe-booking.ru -u Admin -p supersecretpassword
+cd src/scripts
+uv run create_superuser.py -l admin@cafe-booking.ru -u Admin -p supersecretpassword
 ```
 
-## Тесты
+## 🧪 Тесты
 
-Для запуска тестов используется `pytest`.
-
-Тесты используют отдельную базу данных (переменная в .env DB_PYTEST), которая создается автоматически при запуске pytest.
+Тесты используют отдельную базу данных (переменная в .env DB_PYTEST), которая создается автоматически при запуске тестов.
 
 Запуск всех тестов из корня проекта:
 
@@ -438,217 +475,75 @@ PYTHONPATH=$(pwd) uv run scripts/create_superuser.py -l admin@cafe-booking.ru -u
 PYTHONPATH=src uv run pytest
 ```
 
-Запуск с подробным выводом:
+## 📁 Структура проекта
 
-```bash
-PYTHONPATH=src uv run pytest -vv
 ```
-
-Запуск тестов конкретной директории:
-
-```bash
-PYTHONPATH=src uv run pytest tests/users
+cafe-booking/
+├── .devcontainer/                 # Конфигурация DevContainer для VSCode
+├── .dockerignore                  # Игнорируемые файлы для Docker
+├── .pre-commit-config.yaml        # Pre-commit хуки (Ruff, форматирование)
+├── Dockerfile                     # Dockerfile для сборки приложения
+├── Makefile                       # Make команды для автоматизации
+├── pyproject.toml                 # Зависимости и настройки проекта (uv)
+├── README.md                      # Документация проекта
+├── ruff.toml                      # Конфигурация Ruff линтера
+├── uv.lock                        # Lock файл зависимостей
+│
+├── infra/                         # Инфраструктура и Docker Compose
+│   ├── docker-compose-develop.yaml      # Docker Compose для разработки
+│   ├── docker-compose-production.yaml   # Docker Compose для продакшена
+│   ├── Dockerfile                       # Dockerfile для сборки
+│   ├── nginx/                           # Конфигурация Nginx шлюза
+│   │   ├── Dockerfile
+│   │   ├── nginx.conf.template
+│   │   ├── proxy-headers.conf
+│   │   ├── proxy-websocket.conf
+│   │   └── real-ip.conf
+│   ├── postgresql.conf             # Конфигурация PostgreSQL
+│   └── redis.conf                  # Конфигурация Redis
+│
+├── src/                           # Исходный код приложения
+│   ├── alembic.ini                # Конфигурация Alembic
+│   ├── celery_app.py              # Точка входа Celery
+│   ├── main.py                    # Точка входа FastAPI
+│   ├── api/                       # API слой
+│   │   ├── endpoints/             # FastAPI эндпоинты
+│   │   ├── routers.py             # Объединение роутеров
+│   │   ├── services/              # Бизнес-логика API
+│   │   └── validators/            # Валидаторы для API
+│   ├── cache/                     # Кеширование (Redis, SWR)
+│   │   ├── cache.py               # Кеш-клиент
+│   │   ├── cache_key.py           # Генерация ключей/тегов кеша
+│   │   ├── cleaner_cache.py       # Очистка кеша
+│   │   ├── decorator.py           # Декоратор для кеширования
+│   │   ├── redis_client.py        # Клиент Redis
+│   │   ├── services.py            # Сервисы кеширования
+│   │   └── swr_cache.py           # Кеш-клиент с Stale-While-Revalidate стратегией
+│   │
+│   ├── celery_core/               # Celery (фоновые задачи)
+│   │   ├── base.py                # Базовые настройки
+│   │   ├── config.py              # Конфигурация Celery
+│   │   ├── beat/                  # Управление расписаниями (CRUD)
+│   │   ├── services/              # Сервисы для задач
+│   │   ├── tasks/                 # Задачи
+│   │   └── templates/             # HTML шаблоны для задач
+│   │
+│   ├── core/                      # Ядро приложения
+│   │
+│   ├── crud/                      # CRUD операции
+│   ├── fixtures/                  # Тестовые данные
+│   │   ├── example/               # JSON файлы с данными
+│   │   └── gen_load_fixtures.py   # Скрипт загрузки фикстур
+│   │
+│   ├── middleware/                # Промежуточное ПО
+│   │   ├── auth/                  # Кастомный middleware Аутентификация
+│   │   └── logging.py             # Кастомный middleware логирования запросов
+│   │
+│   ├── migrations/                # Alembic миграции
+│   ├── models/                    # SQLAlchemy модели
+│   ├── schemas/                   # Pydantic схемы
+│   └── scripts/                   # Утилитные скрипты
+│       └── create_superuser.py    # Создание суперпользователя
+├── tests/                         # Тесты
+└── uv.lock                        # Lock файл зависимостей
 ```
-
-## Структура проекта
-
-```text
-.
-├── .devcontainer/
-│   ├── devcontainer.json
-│   ├── docker-compose.yml
-│   ├── Dockerfile
-│   └── test_tools.sh
-├── .vscode/
-│   └── launch.json
-├── infra/
-│   ├── docker-compose.yaml
-│   └── .env.example
-├── openapi-docs/
-│   ├── docs/
-│   │   ├── openapi.yml
-│   │   ├── openapi.json
-│   │   ├── index_swagger.html
-│   │   └── index_redoc.html
-│   ├── Dockerfile
-│   ├── docker-compose.yaml
-│   └── readme.md
-├── src/
-│   ├── api/
-│   │   ├── endpoints/
-│   │   ├── routers.py
-│   │   └── validators.py
-│   ├── auth/
-│   ├── celery_core/
-│   ├── core/
-│   │   ├── alembic_models.py
-│   │   ├── base_model.py
-│   │   ├── db.py
-│   │   └── settings.py
-│   ├── crud/
-│   ├── fixtures/
-│   ├── middleware/
-│   ├── migrations/
-│   ├── models/
-│   ├── schemas/
-│   ├── celery_app.py
-│   └── main.py
-├── tests/
-│   ├── users/
-│   ├── conftest.py
-│   ├── constants.py
-│   └── helpers.py
-├── Dockerfile
-├── entrypoint.sh
-├── Makefile
-├── pyproject.toml
-├── ruff.toml
-├── uv.lock
-└── README.md
-```
-
-## Авторизация
-
-Для получения токена нужно отправить запрос:
-
-```http
-POST /auth/login
-```
-
-Пример тела запроса:
-
-```json
-{
-  "login": "user@example.com",
-  "password": "user_password"
-}
-```
-
-Пример ответа:
-
-```json
-{
-  "access_token": "jwt_token",
-  "token_type": "bearer"
-}
-```
-
-Для защищённых эндпоинтов токен нужно передавать в заголовке:
-
-```http
-Authorization: Bearer jwt_token
-```
-
-## Роли пользователей
-
-В проекте используются три роли:
-
-```text
-USER
-MANAGER
-ADMIN
-```
-
-Обычный пользователь может:
-
-- зарегистрироваться;
-- авторизоваться;
-- получить свой профиль;
-- обновить свой профиль.
-
-Менеджер и администратор дополнительно могут:
-
-- получать список пользователей;
-- получать пользователя по ID;
-- обновлять данные пользователя по ID.
-
-## Работа с медиафайлами
-
-Загрузка изображения:
-
-```http
-POST /media/
-```
-
-Файл передаётся через `multipart/form-data`.
-
-Поддерживаемые форматы задаются в константах проекта. Загруженное изображение конвертируется и сохраняется в формате JPG.
-
-Получение изображения:
-
-```http
-GET /media/{media_id}
-```
-
-## Celery, RabbitMQ и Flower
-
-В проекте используется Celery для фоновых задач.
-
-RabbitMQ используется как брокер сообщений.
-
-Flower доступен по адресу:
-
-```text
-http://localhost:5555
-```
-
-RabbitMQ Management UI доступен по адресу:
-
-```text
-http://localhost:15672
-```
-
-Данные для базовой авторизации Flower задаются через переменную:
-
-```env
-FLOWER_BASIC_AUTH=admin:flowerpass
-```
-
-## Линтеры и pre-commit
-
-В проекте используется Ruff для проверки и форматирования кода.
-
-Установка pre-commit hooks:
-
-```bash
-uv run pre-commit install
-```
-
-Запуск проверки вручную:
-
-```bash
-uv run pre-commit run --all-files
-```
-
-Запуск Ruff:
-
-```bash
-uv run ruff check .
-```
-
-Автоисправление Ruff:
-
-```bash
-uv run ruff check . --fix
-```
-
-## Логи
-
-Логи приложения и Celery сохраняются в Docker volumes:
-
-```text
-app_logs
-celery_logs
-```
-
-Также в проекте есть middleware для логирования HTTP-запросов.
-
-## Примечания для разработки
-
-- Основной код приложения находится в директории `src`.
-- OpenAPI-документация проекта находится в `openapi-docs`.
-- Тесты находятся в директории `tests`.
-- Для тестов обязательно использовать отдельную базу данных.
-- Перед запуском приложения нужно заполнить `infra/.env`.
-- После изменения моделей нужно создавать и применять миграции Alembic.
-- При работе внутри DevContainer Git и SSH-ключи настраиваются отдельно от хостовой системы.
