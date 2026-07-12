@@ -78,6 +78,7 @@
 
 - **Docker / Docker Compose** — контейнеризация всех сервисов (приложение + БД + RabbitMQ)
 - **Dev Containers for VSCode** — изолированная среда разработки в контейнере
+---
 
 
 ## ⚡ Возможности проекта
@@ -94,6 +95,14 @@
 - 🧪 **Тестирование** — Pytest с отдельной тестовой БД
 - 🐳 **Контейнеризация** — Docker + DevContainer для единообразной разработки
 - 🔄 **CI/CD** — GitHub Actions: линтинг, тесты, сборка и деплой
+---
+
+## 🌐 Проект доступен по адресу:
+
+- **UI**: [https://cafe-booking-dev.ruviewer.ru](https://cafe-booking-dev.ruviewer.ru)
+- **Документация Swagger UI**: [https://cafe-booking-dev.ruviewer.ru/docs](https://cafe-booking-dev.ruviewer.ru/docs#/)
+- **Документация ReDoc**: [https://cafe-booking-dev.ruviewer.ru/redoc](https://cafe-booking-dev.ruviewer.ru/redoc)
+---
 
 
 ## 📚 API Documentation
@@ -228,6 +237,7 @@ Authorization: Bearer <your_access_token>
 - Просмотр всех бронирований системы
 - Управление ролями пользователей
 - Полный доступ к управлению кафе, столами и слотами
+---
 
 
 ## 🚀 CI/CD Pipeline
@@ -314,6 +324,7 @@ graph LR
     E --> H[deploy-prod<br>если main]
     F --> H
 ```
+---
 
 ## ⚙️ Переменные окружения
 
@@ -328,6 +339,7 @@ cp infra/.env.example infra/.env
 ```
 
 **⚠️ Важно:** Копию отредактированного infra/.env необходимо скопировать в .devcontainer/ для работы DevContainer.
+---
 
 ## 🐳 Запуск проекта
 
@@ -353,6 +365,7 @@ docker compose -f docker-compose-develop.yaml up -d --build
 ```bash
 docker compose -f docker-compose-develop.yaml down
 ```
+---
 
 ## 📦 Работа через DevContainer
 
@@ -416,6 +429,7 @@ GitHub -> Settings -> SSH and GPG keys -> SSH keys
 ```text
 .vscode/launch.json
 ```
+---
 
 ## 🗄️ Миграции
 
@@ -425,6 +439,7 @@ GitHub -> Settings -> SSH and GPG keys -> SSH keys
 cd src
 uv run alembic upgrade head
 ```
+---
 
 ## 📊 Фикстуры
 
@@ -444,6 +459,7 @@ export PYTHONPATH=/workspace/src
 cd src/fixtures
 uv run python gen_load_fixtures.py
 ```
+---
 
 
 ## 👤 Создание суперпользователя
@@ -464,6 +480,7 @@ export PYTHONPATH=/workspace/src
 cd src/scripts
 uv run create_superuser.py -l admin@cafe-booking.ru -u Admin -p supersecretpassword
 ```
+---
 
 ## 🧪 Тесты
 
@@ -474,6 +491,7 @@ uv run create_superuser.py -l admin@cafe-booking.ru -u Admin -p supersecretpassw
 ```bash
 PYTHONPATH=src uv run pytest
 ```
+---
 
 ## 📁 Структура проекта
 
