@@ -22,9 +22,9 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![uv](https://img.shields.io/badge/uv-latest-purple)
 ![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0+-FF6600?logo=rabbitmq&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7.0+-DC382D?logo=redis&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-8.0+-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-latest-blue)
 ![Celery](https://img.shields.io/badge/Celery-latest-lightgreen)
 ![Pytest](https://img.shields.io/badge/Pytest-latest-blue)
@@ -317,9 +317,9 @@ graph LR
 
 ## ⚙️ Переменные окружения
 
-- .env — основной файл с переменными (подключается в Docker Compose)
-- .env.base — базовые переменные (например, для тестов)
-- .env.cache — настройки Redis-кеша (если используется)
+- .env — основной файл с переменными
+- .env.base — базовые переменные
+- .env.cache — настройки Redis-кеша
 
 Перед запуском проекта нужно создать файл окружения на основе примера:
 
