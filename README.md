@@ -7,6 +7,7 @@
 - [⚡ Возможности проекта](#-возможности-проекта)
 - [📚 API Documentation](#-api-documentation)
 - [👥 Роли и их возможности](#-роли-и-их-возможности)
+- [⏱️ Управление задачами Celery через API](#️-управление-периодическими-задачами-celery-через-api)
 - [🚀 CI/CD Pipeline](#-cicd-pipeline)
 - [⚙️ Переменные окружения](#️-переменные-окружения)
 - [🐳 Запуск проекта (DEV)](#-запуск-проекта)
@@ -19,16 +20,17 @@
 
 ## 🛠️ Стек технологий
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![uv](https://img.shields.io/badge/uv-latest-purple)
-![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)
-![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0+-FF6600?logo=rabbitmq&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-8.0+-DC382D?logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-latest-blue)
-![Celery](https://img.shields.io/badge/Celery-latest-lightgreen)
-![Pytest](https://img.shields.io/badge/Pytest-latest-blue)
-![GitHub Actions Workflow Status](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
+[![uv](https://img.shields.io/badge/uv-latest-purple)](https://docs.astral.sh/uv/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)](https://www.postgresql.org/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0+-FF6600?logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+[![Redis](https://img.shields.io/badge/Redis-8.0+-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-latest-blue)](https://www.docker.com/)
+[![Celery](https://img.shields.io/badge/Celery-latest-lightgreen)](https://docs.celeryq.dev/)
+[![Pytest](https://img.shields.io/badge/Pytest-latest-blue)](https://docs.pytest.org/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)](https://github.com/fktrctq/cafe-booking/actions)
+[![Demo](https://img.shields.io/badge/Demo-Online-brightgreen?style=flat&logo=vercel)](https://cafe-booking-dev.ruviewer.ru)
 
 ### 🐍 Язык и окружение
 
@@ -52,6 +54,7 @@
 - **RabbitMQ** — брокер сообщений
 - **Celery** — распределённая очередь задач
 - **Flower** — веб-интерфейс для мониторинга Celery
+- **API управления Celery Beat** — динамическое создание и управление периодическими задачами через REST API
 
 ### ⚡ Кеширование
 
@@ -97,7 +100,7 @@
 - 🔄 **CI/CD** — GitHub Actions: линтинг, тесты, сборка и деплой
 ---
 
-## 🌐 Проект доступен по адресу:
+## 🌐 Демо:
 
 - **UI**: [https://cafe-booking-dev.ruviewer.ru](https://cafe-booking-dev.ruviewer.ru)
 - **Документация Swagger UI**: [https://cafe-booking-dev.ruviewer.ru/docs](https://cafe-booking-dev.ruviewer.ru/docs#/)
@@ -239,6 +242,73 @@ Authorization: Bearer <your_access_token>
 - Полный доступ к управлению кафе, столами и слотами
 ---
 
+## ⏱️ Управление периодическими задачами Celery через API
+
+В проекте реализовано динамическое управление задачами Celery Beat через REST API. Это позволяет настраивать фоновые процессы (например, отправку уведомлений) без остановки и пересборки контейнеров.
+
+### 🔧 Основные сценарии
+
+- Создание расписания (интервальное, хронологическое, однократное)
+- Создание новой периодической задачи с привязкой к расписанию
+- Включение/отключение существующей задачи без её удаления
+- Обновление параметров задачи (время выполнения, аргументы, приоритет)
+
+### 📝 Пример: создание задачи для отправки напоминаний
+
+Для создания задачи необходимо отправить `POST` запрос на `/api/v1/schedule/task` с телом:
+
+```json
+{
+  "task": "tasks.send_upcoming_bookings",
+  "args": [60, 10, "both"],
+  "kwargs": {
+    "notify_target": "both",
+    "reminder_minutes_before": 60,
+    "task_interval_minutes": 10
+  },
+  "enabled": true,
+  "name": "Отправка уведомлений",
+  "description": "Ежедневная отправка отчета",
+  "queue": "default",
+  "priority": 0,
+  "one_off": false,
+  "schedule_id": 0,
+  "discriminator": "intervalschedule"
+}
+```
+
+### 📋 Параметры задачи
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `task` | string | Путь к задаче (например, `tasks.send_upcoming_bookings`) |
+| `args` | array | Позиционные аргументы задачи |
+| `kwargs` | object | Именованные аргументы задачи |
+| `enabled` | boolean | Активна ли задача (true/false) |
+| `name` | string | Название задачи |
+| `description` | string | Описание задачи |
+| `queue` | string | Очередь в брокере сообщений (`default`) |
+| `priority` | integer | Приоритет задачи (0–255, где 0 — наивысший) |
+| `one_off` | boolean | Однократная задача (только для `clockedschedule`) |
+| `schedule_id` | integer | ID предварительно созданного расписания |
+| `discriminator` | string | Тип расписания: `intervalschedule`, `crontabschedule`, `clockedschedule` |
+
+### 📌 Аргументы задачи `tasks.send_upcoming_bookings`
+
+| Аргумент | Тип | Описание |
+|----------|-----|----------|
+| `notify_target` | string | Кого оповещать: `client`, `manager`, `both` |
+| `reminder_minutes_before` | integer | За сколько минут до бронирования отправлять напоминание |
+| `task_interval_minutes` | integer | Интервал выполнения задачи в минутах |
+
+### 🔄 Жизненный цикл задачи
+
+1. **Создание расписания** — через эндпоинты `/schedule/interval`, `/schedule/crontab` или `/schedule/clocked`
+2. **Создание задачи** — через `/schedule/task` с указанием `schedule_id` и `discriminator`
+3. **Управление** — включение/отключение через `/schedule/task/{task_id}/enable` и `/schedule/task/{task_id}/disable`
+4. **Обновление** — изменение параметров через `PATCH /schedule/task/{task_id}`
+5. **Удаление** — `DELETE /schedule/task/{task_id}`
+---
 
 ## 🚀 CI/CD Pipeline
 
@@ -249,7 +319,6 @@ Authorization: Bearer <your_access_token>
 
 Автоматизация сборки, тестирования и деплоя через **GitHub Actions**.
 
----
 
 ### 🔄 Workflow: `Main booking cafe workflow`
 
@@ -258,7 +327,6 @@ Authorization: Bearer <your_access_token>
 | `push` | `feature/deploy` | Всегда |
 | `pull_request` (closed) | `develop`, `main` | Только при объединении (merged) |
 
----
 
 ### 📋 Jobs
 
@@ -271,7 +339,6 @@ Authorization: Bearer <your_access_token>
 | **`deploy-dev`** | Деплой на **development** (если **НЕ** `main`) | Все сборки |
 | **`deploy-prod`** | Деплой на **production** (если `main`) | Все сборки |
 
----
 
 ### 🐳 Docker-образы
 
@@ -281,7 +348,6 @@ Authorization: Bearer <your_access_token>
 | `bookin-cafe-celery` | `:latest`, `:<sha>` |
 | `bookin-cafe-gateway` | `:latest`, `:<sha>` |
 
----
 
 ### 🌍 Окружения
 
@@ -290,7 +356,6 @@ Authorization: Bearer <your_access_token>
 | **Development** | Любая, кроме `main` | Тестовый сервер для разработки |
 | **Production** | `main` | Боевой сервер |
 
----
 
 ### 🔐 Необходимые секреты
 
@@ -306,7 +371,6 @@ Authorization: Bearer <your_access_token>
 > Полный список переменных и секретов доступен в `[.github/workflows/main.yml](https://github.com/fktrctq/cafe-booking/blob/main/.github/workflows/main.yml)`
 
 **⚠️ Важно:** Все секреты и переменные должны быть настроены в `Settings > Secrets and variables > Actions` вашего репозитория.
----
 
 ### 📊 Схема пайплайна
 
@@ -565,3 +629,7 @@ cafe-booking/
 ├── tests/                         # Тесты
 └── uv.lock                        # Lock файл зависимостей
 ```
+
+## 📄 Лицензия
+
+MIT
