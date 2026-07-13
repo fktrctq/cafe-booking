@@ -362,7 +362,7 @@ Authorization: Bearer <your_access_token>
 | **SMTP** | `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` |
 | **Flower** | `FLOWER_BASIC_AUTH` |
 
-> Полный список переменных и секретов доступен в `[.github/workflows/main.yml](https://github.com/fktrctq/cafe-booking/blob/main/.github/workflows/main.yml)`
+> Полный список переменных и секретов доступен тут 👉 [.github/workflows/main.yml](https://github.com/fktrctq/cafe-booking/blob/main/.github/workflows/main.yml)
 
 **⚠️ Важно:** Все секреты и переменные должны быть настроены в `Settings > Secrets and variables > Actions` вашего репозитория.
 
