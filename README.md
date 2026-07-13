@@ -311,14 +311,9 @@ Authorization: Bearer <your_access_token>
 ---
 
 ## 🚀 CI/CD Pipeline
-
-![GitHub Actions Workflow Status](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)
-![Docker Hub](https://img.shields.io/badge/Docker%20Hub-Automated-2496ED?logo=docker)
-![Deploy Dev](https://img.shields.io/badge/Deploy-Development-blue)
-![Deploy Prod](https://img.shields.io/badge/Deploy-Production-red)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)](https://github.com/fktrctq/cafe-booking/actions)
 
 Автоматизация сборки, тестирования и деплоя через **GitHub Actions**.
-
 
 ### 🔄 Workflow: `Main booking cafe workflow`
 
