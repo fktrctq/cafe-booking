@@ -321,7 +321,6 @@ Authorization: Bearer <your_access_token>
 | `push` | `feature/deploy` | Всегда |
 | `pull_request` (closed) | `develop`, `main` | Только при объединении (merged) |
 
-
 ### 📋 Jobs
 
 | Job | Описание | Зависит от |
@@ -330,8 +329,8 @@ Authorization: Bearer <your_access_token>
 | **`pytest_check`** | Запуск тестов (Pytest) | — |
 | **`build_backend_celery`** | Сборка образов **backend** + **celery** в Docker Hub | `style_check`, `pytest_check` |
 | **`build_gateway`** | Сборка образа **Nginx-шлюза** в Docker Hub | `style_check`, `pytest_check` |
-| **`deploy-dev`** | Деплой на **development** (если `develop` и `feature/deploy`) | Все сборки |
-| **`deploy-prod`** | Деплой на **production** (если `main`) | Все сборки |
+| **`deploy-dev`** | Деплой на **development** (если `develop` и `feature/deploy`) | Все предыдущие job |
+| **`deploy-prod`** | Деплой на **production** (если `main`) | Все предыдущие job |
 
 
 ### 🐳 Docker-образы
@@ -386,7 +385,7 @@ graph LR
 
 ## ⚙️ Переменные окружения
 
-- .env — файл с переменными для разработки
+- .env — файл с переменными (разработка)
 - .env.base — базовые переменные (CI/CD)
 - .env.cache — настройки Redis-кеша (разработка + CI/CD)
 
