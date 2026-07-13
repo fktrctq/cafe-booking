@@ -7,6 +7,7 @@
 - [⚡ Возможности проекта](#-возможности-проекта)
 - [📚 API Documentation](#-api-documentation)
 - [👥 Роли и их возможности](#-роли-и-их-возможности)
+- [⏱️ Управление задачами Celery через API](#️-управление-периодическими-задачами-celery-через-api)
 - [🚀 CI/CD Pipeline](#-cicd-pipeline)
 - [⚙️ Переменные окружения](#️-переменные-окружения)
 - [🐳 Запуск проекта (DEV)](#-запуск-проекта)
@@ -19,16 +20,17 @@
 
 ## 🛠️ Стек технологий
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![uv](https://img.shields.io/badge/uv-latest-purple)
-![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)
-![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0+-FF6600?logo=rabbitmq&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-8.0+-DC382D?logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-latest-blue)
-![Celery](https://img.shields.io/badge/Celery-latest-lightgreen)
-![Pytest](https://img.shields.io/badge/Pytest-latest-blue)
-![GitHub Actions Workflow Status](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
+[![uv](https://img.shields.io/badge/uv-latest-purple)](https://docs.astral.sh/uv/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-latest-green)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)](https://www.postgresql.org/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0+-FF6600?logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+[![Redis](https://img.shields.io/badge/Redis-8.0+-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-latest-blue)](https://www.docker.com/)
+[![Celery](https://img.shields.io/badge/Celery-latest-lightgreen)](https://docs.celeryq.dev/)
+[![Pytest](https://img.shields.io/badge/Pytest-latest-blue)](https://docs.pytest.org/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)](https://github.com/fktrctq/cafe-booking/actions)
+[![Demo](https://img.shields.io/badge/Demo-Online-brightgreen?style=flat&logo=vercel)](https://cafe-booking-dev.ruviewer.ru)
 
 ### 🐍 Язык и окружение
 
@@ -52,6 +54,7 @@
 - **RabbitMQ** — брокер сообщений
 - **Celery** — распределённая очередь задач
 - **Flower** — веб-интерфейс для мониторинга Celery
+- **API управления Celery Beat** — динамическое создание и управление периодическими задачами через REST API
 
 ### ⚡ Кеширование
 
@@ -62,7 +65,7 @@
 
 ### 🔧 Кастомные Middleware
 
-- **Аутентификация** (`AuthMiddleware`) — кастомный JWT-мидлварь для проверки токена, подстановки текущего пользователя в `request.state.user` с кеширования пользователя (SWR-стратегия)
+- **Аутентификация** (`AuthMiddleware`) — кастомный JWT-мидлварь для проверки токена, подстановки текущего пользователя в `request.state.user` с кешированием пользователя (SWR-стратегия)
 - **Логирование** (`LoggingMiddleware`) — кастомный мидлварь для логирования всех входящих запросов и ответов:
   - Логирование запросов (метод, путь, IP клиента, `trace_id`, пользователь)
   - Логирование ответов (статус, длительность в мс)
@@ -76,8 +79,9 @@
 
 ### 🐳 Контейнеризация и среда разработки
 
-- **Docker / Docker Compose** — контейнеризация всех сервисов (приложение + БД + RabbitMQ)
+- **Docker / Docker Compose** — контейнеризация всех сервисов (приложение + БД + RabbitMQ + Redis)
 - **Dev Containers for VSCode** — изолированная среда разработки в контейнере
+---
 
 
 ## ⚡ Возможности проекта
@@ -85,7 +89,7 @@
 - 🔐 **Аутентификация и авторизация** — JWT-токены, роли `USER`, `MANAGER`, `ADMIN`
 - 👤 **Управление пользователями** — регистрация, просмотр, редактирование, блокировка
 - ☕ **Управление кафе** — создание, редактирование, просмотр кафе
-- 🪑 **Управление столами** — создание, редактирование, блокировка столов в кафе
+- 🪑 **Управление столами** — создание, редактирование, просмотр, блокировка столов в кафе
 - ⏰ **Управление временными слотами** — настройка интервалов бронирования
 - 📅 **Бронирование** — создание, просмотр, изменение и отмена бронирований с выбором даты, времени и стола
 - 🖼️ **Медиа** — загрузка изображений с конвертацией в JPG и получение по ID
@@ -94,6 +98,14 @@
 - 🧪 **Тестирование** — Pytest с отдельной тестовой БД
 - 🐳 **Контейнеризация** — Docker + DevContainer для единообразной разработки
 - 🔄 **CI/CD** — GitHub Actions: линтинг, тесты, сборка и деплой
+---
+
+## 🌐 Демо:
+
+- **UI**: [https://cafe-booking-dev.ruviewer.ru](https://cafe-booking-dev.ruviewer.ru)
+- **Документация Swagger UI**: [https://cafe-booking-dev.ruviewer.ru/docs](https://cafe-booking-dev.ruviewer.ru/docs#/)
+- **Документация ReDoc**: [https://cafe-booking-dev.ruviewer.ru/redoc](https://cafe-booking-dev.ruviewer.ru/redoc)
+---
 
 
 ## 📚 API Documentation
@@ -228,18 +240,79 @@ Authorization: Bearer <your_access_token>
 - Просмотр всех бронирований системы
 - Управление ролями пользователей
 - Полный доступ к управлению кафе, столами и слотами
+---
 
+## ⏱️ Управление периодическими задачами Celery через API
+
+В проекте реализовано динамическое управление задачами Celery Beat через REST API. Это позволяет настраивать фоновые процессы (например, отправку уведомлений) без остановки и пересборки контейнеров.
+
+### 🔧 Основные сценарии
+
+- Создание расписания (интервальное, хронологическое, однократное)
+- Создание новой периодической задачи с привязкой к расписанию
+- Включение/отключение существующей задачи без её удаления
+- Обновление параметров задачи (время выполнения, аргументы, приоритет)
+
+### 📝 Пример: создание задачи для отправки напоминаний
+
+Для создания задачи необходимо отправить `POST` запрос на `/api/v1/schedule/task` с телом:
+
+```json
+{
+  "task": "tasks.send_upcoming_bookings",
+  "kwargs": {
+    "notify_target": "both",
+    "reminder_minutes_before": 60,
+    "task_interval_minutes": 10
+  },
+  "enabled": true,
+  "name": "Отправка уведомлений",
+  "description": "Ежедневная отправка отчета",
+  "queue": "default",
+  "priority": 0,
+  "one_off": false,
+  "schedule_id": 0,
+  "discriminator": "intervalschedule"
+}
+```
+
+### 📋 Параметры задачи
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `task` | string | Путь к задаче (например, `tasks.send_upcoming_bookings`) |
+| `args` | array | Позиционные аргументы задачи |
+| `kwargs` | object | Именованные аргументы задачи |
+| `enabled` | boolean | Активна ли задача (true/false) |
+| `name` | string | Название задачи |
+| `description` | string | Описание задачи |
+| `queue` | string | Очередь в брокере сообщений (`default`) |
+| `priority` | integer | Приоритет задачи (0–255, где 0 — наивысший) |
+| `one_off` | boolean | Однократная задача (только для `clockedschedule`) |
+| `schedule_id` | integer | ID предварительно созданного расписания |
+| `discriminator` | string | Тип расписания: `intervalschedule`, `crontabschedule`, `clockedschedule` |
+
+### 📌 Аргументы задачи `tasks.send_upcoming_bookings`
+
+| Аргумент | Тип | Описание |
+|----------|-----|----------|
+| `notify_target` | string | Кого оповещать: `client`, `manager`, `both` |
+| `reminder_minutes_before` | integer | За сколько минут до бронирования отправлять напоминание |
+| `task_interval_minutes` | integer | Интервал выполнения задачи в минутах |
+
+### 🔄 Жизненный цикл задачи
+
+1. **Создание расписания** — через эндпоинты `/schedule/interval`, `/schedule/crontab` или `/schedule/clocked`
+2. **Создание задачи** — через `/schedule/task` с указанием `schedule_id` и `discriminator`
+3. **Управление** — включение/отключение через `/schedule/task/{task_id}/enable` и `/schedule/task/{task_id}/disable`
+4. **Обновление** — изменение параметров через `PATCH /schedule/task/{task_id}`
+5. **Удаление** — `DELETE /schedule/task/{task_id}`
+---
 
 ## 🚀 CI/CD Pipeline
-
-![GitHub Actions Workflow Status](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)
-![Docker Hub](https://img.shields.io/badge/Docker%20Hub-Automated-2496ED?logo=docker)
-![Deploy Dev](https://img.shields.io/badge/Deploy-Development-blue)
-![Deploy Prod](https://img.shields.io/badge/Deploy-Production-red)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Active-brightgreen)](https://github.com/fktrctq/cafe-booking/actions)
 
 Автоматизация сборки, тестирования и деплоя через **GitHub Actions**.
-
----
 
 ### 🔄 Workflow: `Main booking cafe workflow`
 
@@ -247,8 +320,6 @@ Authorization: Bearer <your_access_token>
 |---------|-------|---------|
 | `push` | `feature/deploy` | Всегда |
 | `pull_request` (closed) | `develop`, `main` | Только при объединении (merged) |
-
----
 
 ### 📋 Jobs
 
@@ -258,10 +329,9 @@ Authorization: Bearer <your_access_token>
 | **`pytest_check`** | Запуск тестов (Pytest) | — |
 | **`build_backend_celery`** | Сборка образов **backend** + **celery** в Docker Hub | `style_check`, `pytest_check` |
 | **`build_gateway`** | Сборка образа **Nginx-шлюза** в Docker Hub | `style_check`, `pytest_check` |
-| **`deploy-dev`** | Деплой на **development** (если **НЕ** `main`) | Все сборки |
-| **`deploy-prod`** | Деплой на **production** (если `main`) | Все сборки |
+| **`deploy-dev`** | Деплой на **development** (если `develop` и `feature/deploy`) | Все предыдущие job |
+| **`deploy-prod`** | Деплой на **production** (если `main`) | Все предыдущие job |
 
----
 
 ### 🐳 Docker-образы
 
@@ -271,16 +341,14 @@ Authorization: Bearer <your_access_token>
 | `bookin-cafe-celery` | `:latest`, `:<sha>` |
 | `bookin-cafe-gateway` | `:latest`, `:<sha>` |
 
----
 
 ### 🌍 Окружения
 
 | Окружение | Ветка | Назначение |
 |-----------|-------|------------|
-| **Development** | Любая, кроме `main` | Тестовый сервер для разработки |
+| **Development** | `develop` и `feature/deploy` | Тестовый сервер для разработки |
 | **Production** | `main` | Боевой сервер |
 
----
 
 ### 🔐 Необходимые секреты
 
@@ -293,10 +361,9 @@ Authorization: Bearer <your_access_token>
 | **SMTP** | `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` |
 | **Flower** | `FLOWER_BASIC_AUTH` |
 
-> Полный список переменных и секретов доступен в `[.github/workflows/main.yml](https://github.com/fktrctq/cafe-booking/blob/main/.github/workflows/main.yml)`
+> Полный список переменных и секретов доступен тут 👉 [.github/workflows/main.yml](https://github.com/fktrctq/cafe-booking/blob/main/.github/workflows/main.yml)
 
 **⚠️ Важно:** Все секреты и переменные должны быть настроены в `Settings > Secrets and variables > Actions` вашего репозитория.
----
 
 ### 📊 Схема пайплайна
 
@@ -314,20 +381,22 @@ graph LR
     E --> H[deploy-prod<br>если main]
     F --> H
 ```
+---
 
 ## ⚙️ Переменные окружения
 
-- .env — основной файл с переменными
-- .env.base — базовые переменные
-- .env.cache — настройки Redis-кеша
+- .env — файл с переменными (разработка)
+- .env.base — базовые переменные (CI/CD)
+- .env.cache — настройки Redis-кеша (разработка + CI/CD)
 
-Перед запуском проекта нужно создать файл окружения на основе примера:
+Перед разработкой проекта нужно создать файл окружения на основе примера:
 
 ```bash
 cp infra/.env.example infra/.env
 ```
 
 **⚠️ Важно:** Копию отредактированного infra/.env необходимо скопировать в .devcontainer/ для работы DevContainer.
+---
 
 ## 🐳 Запуск проекта
 
@@ -353,6 +422,7 @@ docker compose -f docker-compose-develop.yaml up -d --build
 ```bash
 docker compose -f docker-compose-develop.yaml down
 ```
+---
 
 ## 📦 Работа через DevContainer
 
@@ -361,8 +431,7 @@ docker compose -f docker-compose-develop.yaml down
 Перед началом работы должны быть установлены:
 
 - Docker;
-- VSCode;
-- расширение `Dev Containers`.
+- расширение `Dev Containers` для `VSCode`.
 
 ### 🏗️ Создание DevContainer
 
@@ -408,14 +477,15 @@ GitHub -> Settings -> SSH and GPG keys -> SSH keys
 Проект можно запустить через встроенную отладку VSCode:
 
 1. откройте вкладку `Run and Debug`;
-2. выберите конфигурацию запуска;
-3. нажмите `F5`.
+2. выберите конфигурацию запуска (FastAPI + Celery/FastAPI + Celery + Beat или отдельные сервисы);
+3. Запустите выбранную конфигурацию.
 
-Порт запуска можно изменить в файле:
+Конфигурацию запуска можно изменить в файле:
 
 ```text
 .vscode/launch.json
 ```
+---
 
 ## 🗄️ Миграции
 
@@ -425,6 +495,7 @@ GitHub -> Settings -> SSH and GPG keys -> SSH keys
 cd src
 uv run alembic upgrade head
 ```
+---
 
 ## 📊 Фикстуры
 
@@ -444,6 +515,7 @@ export PYTHONPATH=/workspace/src
 cd src/fixtures
 uv run python gen_load_fixtures.py
 ```
+---
 
 
 ## 👤 Создание суперпользователя
@@ -464,6 +536,7 @@ export PYTHONPATH=/workspace/src
 cd src/scripts
 uv run create_superuser.py -l admin@cafe-booking.ru -u Admin -p supersecretpassword
 ```
+---
 
 ## 🧪 Тесты
 
@@ -474,6 +547,7 @@ uv run create_superuser.py -l admin@cafe-booking.ru -u Admin -p supersecretpassw
 ```bash
 PYTHONPATH=src uv run pytest
 ```
+---
 
 ## 📁 Структура проекта
 
@@ -482,7 +556,6 @@ cafe-booking/
 ├── .devcontainer/                 # Конфигурация DevContainer для VSCode
 ├── .dockerignore                  # Игнорируемые файлы для Docker
 ├── .pre-commit-config.yaml        # Pre-commit хуки (Ruff, форматирование)
-├── Dockerfile                     # Dockerfile для сборки приложения
 ├── Makefile                       # Make команды для автоматизации
 ├── pyproject.toml                 # Зависимости и настройки проекта (uv)
 ├── README.md                      # Документация проекта
@@ -492,7 +565,7 @@ cafe-booking/
 ├── infra/                         # Инфраструктура и Docker Compose
 │   ├── docker-compose-develop.yaml      # Docker Compose для разработки
 │   ├── docker-compose-production.yaml   # Docker Compose для продакшена
-│   ├── Dockerfile                       # Dockerfile для сборки
+│   ├── Dockerfile                       # Dockerfile для сборки сервиса и celery/beat
 │   ├── nginx/                           # Конфигурация Nginx шлюза
 │   │   ├── Dockerfile
 │   │   ├── nginx.conf.template
@@ -547,3 +620,7 @@ cafe-booking/
 ├── tests/                         # Тесты
 └── uv.lock                        # Lock файл зависимостей
 ```
+
+## 📄 Лицензия
+
+MIT
