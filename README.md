@@ -65,7 +65,7 @@
 
 ### 🔧 Кастомные Middleware
 
-- **Аутентификация** (`AuthMiddleware`) — кастомный JWT-мидлварь для проверки токена, подстановки текущего пользователя в `request.state.user` с кеширования пользователя (SWR-стратегия)
+- **Аутентификация** (`AuthMiddleware`) — кастомный JWT-мидлварь для проверки токена, подстановки текущего пользователя в `request.state.user` с кешированием пользователя (SWR-стратегия)
 - **Логирование** (`LoggingMiddleware`) — кастомный мидлварь для логирования всех входящих запросов и ответов:
   - Логирование запросов (метод, путь, IP клиента, `trace_id`, пользователь)
   - Логирование ответов (статус, длительность в мс)
@@ -79,7 +79,7 @@
 
 ### 🐳 Контейнеризация и среда разработки
 
-- **Docker / Docker Compose** — контейнеризация всех сервисов (приложение + БД + RabbitMQ)
+- **Docker / Docker Compose** — контейнеризация всех сервисов (приложение + БД + RabbitMQ + Redis)
 - **Dev Containers for VSCode** — изолированная среда разработки в контейнере
 ---
 
@@ -89,7 +89,7 @@
 - 🔐 **Аутентификация и авторизация** — JWT-токены, роли `USER`, `MANAGER`, `ADMIN`
 - 👤 **Управление пользователями** — регистрация, просмотр, редактирование, блокировка
 - ☕ **Управление кафе** — создание, редактирование, просмотр кафе
-- 🪑 **Управление столами** — создание, редактирование, блокировка столов в кафе
+- 🪑 **Управление столами** — создание, редактирование, просмотр, блокировка столов в кафе
 - ⏰ **Управление временными слотами** — настройка интервалов бронирования
 - 📅 **Бронирование** — создание, просмотр, изменение и отмена бронирований с выбором даты, времени и стола
 - 🖼️ **Медиа** — загрузка изображений с конвертацией в JPG и получение по ID
@@ -260,7 +260,6 @@ Authorization: Bearer <your_access_token>
 ```json
 {
   "task": "tasks.send_upcoming_bookings",
-  "args": [60, 10, "both"],
   "kwargs": {
     "notify_target": "both",
     "reminder_minutes_before": 60,
@@ -331,7 +330,7 @@ Authorization: Bearer <your_access_token>
 | **`pytest_check`** | Запуск тестов (Pytest) | — |
 | **`build_backend_celery`** | Сборка образов **backend** + **celery** в Docker Hub | `style_check`, `pytest_check` |
 | **`build_gateway`** | Сборка образа **Nginx-шлюза** в Docker Hub | `style_check`, `pytest_check` |
-| **`deploy-dev`** | Деплой на **development** (если **НЕ** `main`) | Все сборки |
+| **`deploy-dev`** | Деплой на **development** (если `develop` и `feature/deploy`) | Все сборки |
 | **`deploy-prod`** | Деплой на **production** (если `main`) | Все сборки |
 
 
@@ -348,7 +347,7 @@ Authorization: Bearer <your_access_token>
 
 | Окружение | Ветка | Назначение |
 |-----------|-------|------------|
-| **Development** | Любая, кроме `main` | Тестовый сервер для разработки |
+| **Development** | `develop` и `feature/deploy` | Тестовый сервер для разработки |
 | **Production** | `main` | Боевой сервер |
 
 
@@ -387,11 +386,11 @@ graph LR
 
 ## ⚙️ Переменные окружения
 
-- .env — основной файл с переменными
-- .env.base — базовые переменные
-- .env.cache — настройки Redis-кеша
+- .env — файл с переменными для разработки
+- .env.base — базовые переменные (CI/CD)
+- .env.cache — настройки Redis-кеша (разработка + CI/CD)
 
-Перед запуском проекта нужно создать файл окружения на основе примера:
+Перед разработкой проекта нужно создать файл окружения на основе примера:
 
 ```bash
 cp infra/.env.example infra/.env
@@ -433,8 +432,7 @@ docker compose -f docker-compose-develop.yaml down
 Перед началом работы должны быть установлены:
 
 - Docker;
-- VSCode;
-- расширение `Dev Containers`.
+- расширение `Dev Containers` для `VSCode`.
 
 ### 🏗️ Создание DevContainer
 
@@ -480,10 +478,10 @@ GitHub -> Settings -> SSH and GPG keys -> SSH keys
 Проект можно запустить через встроенную отладку VSCode:
 
 1. откройте вкладку `Run and Debug`;
-2. выберите конфигурацию запуска;
-3. нажмите `F5`.
+2. выберите конфигурацию запуска (FastAPI + Celery/FastAPI + Celery + Beat или отдельные сервисы);
+3. Запустите выбранную конфигурацию.
 
-Порт запуска можно изменить в файле:
+Конфигурацию запуска можно изменить в файле:
 
 ```text
 .vscode/launch.json
@@ -559,7 +557,6 @@ cafe-booking/
 ├── .devcontainer/                 # Конфигурация DevContainer для VSCode
 ├── .dockerignore                  # Игнорируемые файлы для Docker
 ├── .pre-commit-config.yaml        # Pre-commit хуки (Ruff, форматирование)
-├── Dockerfile                     # Dockerfile для сборки приложения
 ├── Makefile                       # Make команды для автоматизации
 ├── pyproject.toml                 # Зависимости и настройки проекта (uv)
 ├── README.md                      # Документация проекта
@@ -569,7 +566,7 @@ cafe-booking/
 ├── infra/                         # Инфраструктура и Docker Compose
 │   ├── docker-compose-develop.yaml      # Docker Compose для разработки
 │   ├── docker-compose-production.yaml   # Docker Compose для продакшена
-│   ├── Dockerfile                       # Dockerfile для сборки
+│   ├── Dockerfile                       # Dockerfile для сборки сервиса и celery/beat
 │   ├── nginx/                           # Конфигурация Nginx шлюза
 │   │   ├── Dockerfile
 │   │   ├── nginx.conf.template
