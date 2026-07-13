@@ -64,13 +64,11 @@ services:
 
   redis:
     image: redis:8-alpine
-    env_file:
-      - ../infra/.env
     ports:
       - 6379:6379
     volumes:
       - redis_log:/var/log/redis
-      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ../infra/redis.conf:/usr/local/etc/redis/redis.conf:ro
     command: |
       sh -c "
       chown -R redis:redis /var/log/redis &&
