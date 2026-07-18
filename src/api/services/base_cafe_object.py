@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.services.base import BaseService, CreateSchemaType, ModelType, UpdateSchemaType
 from api.services.cafe import CafeService
 from api.validators.cafe_object import CafeObjectValidator
-from crud import CRUDSlot, CRUDTable
 from crud.base import CRUDBase
 from models import User
 
@@ -14,7 +13,7 @@ from models import User
 class BaseCafeObjectService(BaseService[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Базовый сервис для объектов, принадлежащих кафе."""
 
-    crud: Union[CRUDSlot, CRUDTable]
+    # crud: Union[CRUDSlot, CRUDTable]
 
     def __init__(
         self,
@@ -46,11 +45,7 @@ class BaseCafeObjectService(BaseService[ModelType, CreateSchemaType, UpdateSchem
     ) -> list[ModelType]:
         """Получение списка объектов по ID кафе с учетом роли пользователя."""
         await self.cafe_service.get_object_by_role_or_404(cafe_id, current_user)
-        return await self.get_all_by_role(
-            current_user,
-            show_active,
-            filter_attr=('cafe_id', cafe_id),
-        )
+        return await self.get_all_by_role(current_user, show_active, cafe_id=cafe_id)
 
     async def create_object_in_cafe(
         self,

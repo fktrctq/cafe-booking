@@ -34,5 +34,5 @@ def notify_booking_status(booking: Booking, is_new: bool = False) -> None:
             case _:
                 logger.error(f'Неизвестный статус бронирования, ID {booking.id}: {booking.status}')
 
-    except Exception as e:
-        logger.error(f'Ошибка при отправке уведомления для бронирования {booking.id}: {e}')
+    except Exception as error:
+        logger.error(f'Ошибка при отправке уведомления для бронирования {booking.id}: {error}')

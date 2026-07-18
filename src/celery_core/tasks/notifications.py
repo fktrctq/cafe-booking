@@ -41,10 +41,10 @@ def send_upcoming_bookings(
             task_interval_minutes,
             self.get_session(),
         )
-    except Exception as e:
-        logger.error(f'Ошибка получения списка объектов бронирования: {e}')
+    except Exception as error:
+        logger.error(f'Ошибка получения списка объектов бронирования: {error}')
         return {
-            'error': str(e),
+            'error': str(error),
             'reminder_minutes_before': reminder_minutes_before,
             'task_interval_minutes': task_interval_minutes,
         }
@@ -52,7 +52,7 @@ def send_upcoming_bookings(
     if not upcoming_bookings:
         return {'status': 'completed', 'bookings_found': 0}
 
-    logger.debug(f'Found {len(upcoming_bookings)} upcoming bookings')
+    logger.debug(f'Найдено {len(upcoming_bookings)} бронировний для уведомления!')
 
     for booking_id in upcoming_bookings:
         send_notification.delay(booking_id, 'reminder', notify_target)
@@ -94,24 +94,24 @@ def send_notification(
     try:
         booking = get_booking_with_relations(booking_id, self.get_session())
         if not booking:
-            error = f'Booking {booking_id} not found'
+            error = f'Бронирование с ID {booking_id} не найдено.'
             logger.warning(error)
             return {'error': error}
-    except Exception as e:
-        logger.error(f'Ошибка получения объекта бронирования: {e}')
-        return {'error': str(e), 'booking_id': booking_id}
+    except Exception as error:
+        logger.error(f'Ошибка получения объекта бронирования: {error}')
+        return {'error': str(error), 'booking_id': booking_id}
 
     try:
         to_recipient, all_recipients = get_emails_recipients(booking, notify_target)
-    except Exception as e:
-        logger.error(f'Ошибка подготовки списка получателей уведомления: {e}')
-        return {'error': str(e), 'booking_id': booking_id}
+    except Exception as error:
+        logger.error(f'Ошибка подготовки списка получателей уведомления: {error}')
+        return {'error': str(error), 'booking_id': booking_id}
 
     try:
         context = build_notify_context(booking, notify_type)
-    except Exception as e:
-        logger.error(f'Ошибка подготовки контекста уведомления: {e}')
-        return {'error': str(e), 'booking_id': booking_id}
+    except Exception as error:
+        logger.error(f'Ошибка подготовки контекста уведомления: {error}')
+        return {'error': str(error), 'booking_id': booking_id}
 
     try:
         result = send_email_via_smtp(
@@ -121,12 +121,13 @@ def send_notification(
             template_name='booking_notification.html',
             context=context,
         )
-    except Exception as e:
-        logger.error(f'Ошибка отправки уведомления: {e}')
-        return {'error': str(e), 'booking_id': booking_id}
+    except Exception as error:
+        logger.error(f'Ошибка отправки уведомления: {error}')
+        return {'error': str(error), 'booking_id': booking_id}
 
     logger.info(
-        f'Reminder sent for booking {booking_id} to {len(all_recipients)} recipients: {all_recipients}',
+        f'Напоминание о бронировании ID {booking_id} отправлено {len(all_recipients)} '
+        f'получателям: {all_recipients}',
     )
 
     return {

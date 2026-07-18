@@ -56,31 +56,15 @@ class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def get_all_by_role(
         self,
         current_user: User,
-        show_active: Optional[bool] = None,
-        filter_attr: Optional[tuple[str, Any]] = None,
+        show_active: Optional[bool],
+        **kwargs: Any,
     ) -> list[ModelType]:
-        """Получение списка объектов с учетом роли пользователя.
-
-        Можно отфильтровать объекты по дополнительному атрибуту.
-        """
-        if filter_attr:
-            objects = await self.crud.get_by_attr(
-                filter_attr[0],
-                filter_attr[1],
-                self.session,
-                many=True,
-            )
-        else:
-            objects = await self.crud.get_all(self.session)
-
+        """Получение списка объектов с учетом роли пользователя."""
         if current_user.role == UserRole.USER:
-            return [obj for obj in objects if obj.is_active is True]
+            kwargs['is_active'] = True
+        elif current_user.role == UserRole.MANAGER:
+            kwargs['is_active'] = show_active if show_active is not None else True
+        elif current_user.role == UserRole.ADMIN and show_active is not None:
+            kwargs['is_active'] = show_active
 
-        if current_user.role == UserRole.MANAGER:
-            if show_active is not None:
-                return [obj for obj in objects if obj.is_active == show_active]
-            return [obj for obj in objects if obj.is_active is True]
-
-        if show_active is not None:
-            return [obj for obj in objects if obj.is_active == show_active]
-        return objects
+        return await self.crud.get_by_attributes(self.session, many=True, **kwargs)

@@ -39,10 +39,13 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
 
     async def clean_cache(self, booking_id: UUID = None, new: bool = False) -> None:
         """Удаление ключей кеша по тегу."""
+        tag = None
         if new:
             tag = cache_settings.booking_tag
         if booking_id:
             tag = f'{cache_settings.booking_tag}:{booking_id}'
+        if tag is None:
+            return
         await cache_cleaner_client.delete_key_by_tag_background(tag)
 
     async def _check_objects_exist(
@@ -65,30 +68,19 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         user_id: Optional[UUID] = None,
     ) -> list[Booking]:
         """Получение списка бронирований с учетом роли."""
+        filter_fields = {}
+        if cafe_id:
+            filter_fields['cafe_id'] = cafe_id
+        if user_id:
+            filter_fields['user_id'] = user_id
+
         if current_user.role == UserRole.USER:
-            return await self.crud.get_filtered(
-                session=self.session,
-                show_active=True,
-                cafe_id=cafe_id,
-                user_id=current_user.id,
-            )
-        if current_user.role == UserRole.MANAGER:
-            if cafe_id:
-                await self.validator.check_manager_access_to_cafe(cafe_id, current_user)
+            filter_fields['user_id'] = current_user.id
 
-            return await self.crud.get_filtered(
-                session=self.session,
-                show_active=show_active if show_active is not None else True,
-                cafe_id=cafe_id,
-                user_id=user_id,
-            )
+        if current_user.role == UserRole.MANAGER and cafe_id is not None:
+            await self.validator.check_manager_access_to_cafe(cafe_id, current_user)
 
-        return await self.crud.get_filtered(
-            session=self.session,
-            show_active=show_active,
-            cafe_id=cafe_id,
-            user_id=user_id,
-        )
+        return await self.get_all_by_role(current_user, show_active, **filter_fields)
 
     async def get_booking_by_id(
         self,
