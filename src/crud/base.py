@@ -25,23 +25,24 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db_objs = await session.execute(select(self.model))
         return db_objs.scalars().all()
 
-    async def get_by_attr(
+    async def get_by_attributes(
         self,
-        attr_name: str,
-        value: Any,
         session: AsyncSession,
         many: bool = False,
+        **kwargs: Any,
     ) -> Union[Optional[ModelType], list[ModelType]]:
-        """Получить объект или объекты по любому полю."""
-        attr = getattr(self.model, attr_name, None)
-        if attr is None:
-            return [] if many else None
+        """получить объект(ы) по атрибутам."""
+        query = select(self.model)
 
-        result = await session.execute(
-            select(self.model).where(attr == value),
-        )
+        for key, value in kwargs.items():
+            attr = getattr(self.model, key)
+            query = query.where(attr == value)
+
+        result = await session.execute(query)
+
         if many:
             return result.scalars().all()
+
         return result.scalar()
 
     async def create(self, obj_in: CreateSchemaType, session: AsyncSession) -> ModelType:

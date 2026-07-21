@@ -16,6 +16,7 @@ venv/
 # folder
 logs/
 media/
+*.egg-info
 
 .DS_Store
 .idea/

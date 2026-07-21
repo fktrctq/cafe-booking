@@ -55,7 +55,7 @@ class UserValidator:
             if value is None:
                 continue
 
-            existing_user = await self.crud.get_by_attr(field, value, self.session)
+            existing_user = await self.crud.get_by_attributes(self.session, **{field: value})
 
             if existing_user is not None and existing_user.id != user_id:
                 raise HTTPException(

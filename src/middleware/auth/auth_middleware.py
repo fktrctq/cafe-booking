@@ -9,7 +9,6 @@ from starlette.middleware.base import BaseHTTPMiddleware, DispatchFunction
 from starlette.types import ASGIApp
 
 from cache.swr_cache import swr_cache_redis
-from crud.user import user_crud
 from models.user import User
 from schemas.user import UserResponse
 
@@ -54,7 +53,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """Получение объекта пользователя."""
         async with AsyncSessionLocal() as session:
             try:
-                user = await user_crud.get(user_id, session)
+                user = await session.get(User, user_id)
                 if not user:
                     raise make_not_authenticated_error(USER_NOT_FOUND_ERROR)
                 session.expunge(user)  # Открепляем обект от сессии
