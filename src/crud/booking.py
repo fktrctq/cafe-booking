@@ -73,25 +73,6 @@ class CRUDBooking(CRUDBase[Booking, BookingCreate, BookingUpdate]):
         await session.refresh(db_obj)
         return db_obj
 
-    async def get_filtered(
-        self,
-        session: AsyncSession,
-        show_active: Optional[bool] = None,
-        cafe_id: Optional[UUID] = None,
-        user_id: Optional[UUID] = None,
-    ) -> list[Booking]:
-        """Получить бронирования с фильтрацией."""
-        query = select(Booking)
-        if cafe_id:
-            query = query.where(Booking.cafe_id == cafe_id)
-        if user_id:
-            query = query.where(Booking.user_id == user_id)
-        if show_active is not None:
-            query = query.where(Booking.is_active == show_active)
-
-        result = await session.execute(query)
-        return result.scalars().all()
-
     async def get_conflict_for_booking(
         self,
         session: AsyncSession,

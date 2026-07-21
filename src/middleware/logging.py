@@ -134,5 +134,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             if len(body) > max_length:
                 body = f'{body[:max_length]} ... truncated, total {len(body)}'  # noqa
             return body
-        except Exception as e:  # noqa
-            return f'error read body: {e}'
+        except Exception as error:  # noqa
+            return f'error read body: {error}'

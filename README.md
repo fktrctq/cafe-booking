@@ -266,8 +266,8 @@ Authorization: Bearer <your_access_token>
     "task_interval_minutes": 10
   },
   "enabled": true,
-  "name": "Отправка уведомлений",
-  "description": "Ежедневная отправка отчета",
+  "name": "Отправка уведомлений о бронировании (both/60/10/)",
+  "description": "Отправка уведомлений клиенту и менеджеру за 60 минут до начала брони.",
   "queue": "default",
   "priority": 0,
   "one_off": false,
@@ -370,17 +370,62 @@ Authorization: Bearer <your_access_token>
 ```mermaid
 graph LR
     A[Push / PR merged] --> B[check_conditions]
-    B --> C[style_check]
-    B --> D[pytest_check]
+    B --> C[style_check/pytest_check]
     C --> E[build_backend + celery]
-    D --> E
     C --> F[build_gateway]
-    D --> F
-    E --> G[deploy-dev<br>если не main]
+    E --> G[deploy-dev<br>если feature/deploy или develop]
     F --> G
     E --> H[deploy-prod<br>если main]
     F --> H
 ```
+
+### 🌐 Продакшен-деплой с внешним прокси
+
+В продакшен-окружении проект предполагает использование **внешнего прокси Nginx**, установленного на хостовой машине.
+
+1. **Внешний Nginx** (на хосте) — принимает HTTPS-запросы из интернета, терминирует SSL и проксирует их на внутренний шлюз.
+2. **Внутренний шлюз** (в Docker-контейнере) — распределяет запросы между сервисами (API, Flower, RabbitMQ).
+
+#### 📁 Конфигурация внешнего Nginx
+
+Файлы конфигурации внешнего прокси находится в `infra/nginx.external/`.
+
+**Ключевые особенности:**
+- Терминация HTTPS с использованием Let's Encrypt.
+- Проксирование на `http://127.0.0.1:8080` (порт внутреннего шлюза).
+- Поддержка WebSocket для Flower.
+- Автоматический редирект с HTTP на HTTPS.
+
+#### 🚀 Установка на сервер
+
+1. Установите Nginx и Certbot:
+```bash
+sudo apt update && sudo apt install nginx certbot python3-certbot-nginx
+```
+2. Скопируйте файл конфигурации:
+```bash
+sudo cp infra/external.nginx/nginx.conf /etc/nginx/sites-available/cafe-booking.conf
+sudo cp infra/external.nginx/proxy-headers.conf /etc/nginx/proxy-headers.conf
+sudo mkdir -p /var/www/cafe-booking
+sudo cp infra/external.nginx/index.html /var/www/cafe-booking/index.html
+```
+3. Активируйте конфигурацию:
+```bash
+sudo ln -s /etc/nginx/sites-available/cafe-booking.conf /etc/nginx/sites-enabled/
+```
+4. Проверьте конфигурацию:
+```bash
+sudo nginx -t
+```
+5. Если проверка прошла успешно — перезагрузите Nginx
+```bash
+sudo systemctl reload nginx
+```
+6. Получите SSL-сертификаты:
+```bash
+sudo certbot --nginx
+```
+**⚠️ Важно:** В файле концигурации infra/external.nginx/nginx.conf измените значение директивы server_name на ваш домен.
 ---
 
 ## ⚙️ Переменные окружения
@@ -619,6 +664,82 @@ cafe-booking/
 │       └── create_superuser.py    # Создание суперпользователя
 ├── tests/                         # Тесты
 └── uv.lock                        # Lock файл зависимостей
+```
+
+
+## Архитектурная схема системы
+```mermaid
+graph LR
+    subgraph "🌍 Внешний мир"
+        Client[👤 Клиент<br>HTTPS]
+    end
+
+    subgraph "🖥️ Хост-сервер"
+        ExtNginx[🛡️ Внешний Nginx<br>📦 Терминация HTTPS<br>🔒 Порт 443]
+    end
+
+    subgraph "🐳 Docker-контейнеры (внутренняя сеть cafe_booking)"
+        Gateway[🚪 Внутренний Gateway<br>🌐 Порт 8080<br>⬅️ Принимает HTTP]
+        Backend[⚙️ Backend<br>FastAPI<br>📦 Основная логика]
+        CeleryWorker[🧑‍🏭 Celery Worker<br>⚡ Фоновые задачи]
+        CeleryBeat[⏰ Celery Beat<br>📅 Планировщик]
+        Flower[🌸 Flower<br>📊 Мониторинг задач]
+        RabbitMQ[🐰 RabbitMQ<br>📨 Брокер сообщений]
+        Redis[⚡ Redis<br>💾 Кеширование]
+        DB[🐘 PostgreSQL<br>🗄️ Основная БД]
+    end
+
+    subgraph "📁 Тома (Volumes)"
+        Volumes[(📦 persistent<br>данные)]
+    end
+
+    %% Связи от клиента
+    Client -->|HTTPS: 443| ExtNginx
+
+    %% Связи внешнего Nginx
+    ExtNginx -->|HTTP: 8080| Gateway
+
+    %% Связи Gateway
+    Gateway -->|/api/v1/*, /docs, /redoc, /openapi.json, /health| Backend
+    Gateway -->|/flower/*| Flower
+    Gateway -->|/rabbitmq/*| RabbitMQ
+
+    %% Связи Backend
+    Backend -->|Чтение/Запись| DB
+    Backend -->|Кеширование| Redis
+    Backend -->|Отправка задач| RabbitMQ
+
+    %% Связи Celery
+    RabbitMQ -->|Задачи из очереди| CeleryWorker
+    CeleryBeat -->|Чтение расписаний и данных| DB
+    CeleryBeat -->|Планирование задач| RabbitMQ
+    CeleryWorker -->|Чтение данных| DB
+    CeleryWorker -->|Отправка писем| SMTP[📧 SMTP-сервер]
+
+    %% Flower
+    CeleryWorker -.->|Мониторинг| Flower
+    CeleryBeat -.->|Мониторинг| Flower
+    RabbitMQ -.->|Мониторинг| Flower
+
+    %% Тома
+    DB -.->|Данные| Volumes
+    RabbitMQ -.->|Данные| Volumes
+    Redis -.->|Логи| Volumes
+    Backend -.->|Логи| Volumes
+    Backend -.->|Media| Volumes
+    CeleryWorker -.->|Логи| Volumes
+    CeleryBeat -.->|Логи| Volumes
+
+    %% Стилизация
+    classDef external fill:#ffcccc,stroke:#ff0000
+    classDef host fill:#e6f3ff,stroke:#0066cc
+    classDef docker fill:#cce5ff,stroke:#0066cc
+    classDef volume fill:#f0f0f0,stroke:#999999
+
+    class Client external
+    class ExtNginx host
+    class Gateway,Backend,CeleryWorker,CeleryBeat,Flower,RabbitMQ,Redis,DB docker
+    class Volumes volume
 ```
 
 ## 📄 Лицензия
